@@ -1,3 +1,4 @@
+const { listenToProject } = require("../listeners/events");
 const pool = require("../db/client");
 const { deployProject } = require("../web3/factory");
 
@@ -71,6 +72,9 @@ exports.selectBid = async (req, res) => {
       "UPDATE projects SET contract_address=$1, status='active' WHERE id=$2",
       [contractAddress, projectId]
     );
+
+    // 4. Start listening to events
+    listenToProject(projectId, contractAddress);
 
     // 4. Return response
     res.json({
