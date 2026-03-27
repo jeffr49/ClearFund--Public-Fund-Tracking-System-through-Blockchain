@@ -7,6 +7,32 @@ const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
 
 // Prevent duplicate listeners
 const activeListeners = new Set();
+const seenEventKeys = new Set();
+
+const INSERT_RETRIES = 3;
+const RETRY_DELAY_MS = 300;
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function buildEventKey(contractAddress, eventLog) {
+  if (!eventLog || !eventLog.transactionHash || eventLog.index === undefined) {
+    return null;
+  }
+  return `${contractAddress.toLowerCase()}:${eventLog.transactionHash}:${eventLog.index}`;
+}
+
+async function persistEvent(payload) {
+  for (let attempt = 1; attempt <= INSERT_RETRIES; attempt += 1) {
+    const { error } = await supabase.from("events").insert([payload]);
+    if (!error) return;
+
+    if (attempt === INSERT_RETRIES) {
+      throw error;
+    }
+
+    await sleep(RETRY_DELAY_MS * attempt);
+  }
+}
 
 exports.listenToProject = (projectId, contractAddress) => {
   if (activeListeners.has(contractAddress)) return;
@@ -24,22 +50,29 @@ exports.listenToProject = (projectId, contractAddress) => {
   // =========================
   // PROOF SUBMITTED
   // =========================
-  contract.on("ProofSubmitted", async (milestoneId, ipfsHash) => {
+  contract.on("ProofSubmitted", async (milestoneId, ipfsHash, eventLog) => {
     try {
+      const eventKey = buildEventKey(contractAddress, eventLog);
+      if (eventKey && seenEventKeys.has(eventKey)) return;
+
       console.log("ProofSubmitted:", milestoneId.toString());
 
-      const { error } = await supabase.from("events").insert([
+      await persistEvent(
         {
           project_id: projectId,
           contract_address: contractAddress,
           event_type: "PROOF_SUBMITTED",
           milestone_id: Number(milestoneId),
           actor: "contractor",
-          metadata: { ipfsHash }
+          metadata: {
+            ipfsHash,
+            txHash: eventLog?.transactionHash || null,
+            logIndex: eventLog?.index ?? null
+          }
         }
-      ]);
+      );
 
-      if (error) console.error(error);
+      if (eventKey) seenEventKeys.add(eventKey);
 
     } catch (err) {
       console.error("Listener error (ProofSubmitted):", err);
@@ -49,20 +82,26 @@ exports.listenToProject = (projectId, contractAddress) => {
   // =========================
   // APPROVED
   // =========================
-  contract.on("MilestoneApproved", async (milestoneId, approver) => {
+  contract.on("MilestoneApproved", async (milestoneId, approver, eventLog) => {
     try {
-      const { error } = await supabase.from("events").insert([
+      const eventKey = buildEventKey(contractAddress, eventLog);
+      if (eventKey && seenEventKeys.has(eventKey)) return;
+
+      await persistEvent(
         {
           project_id: projectId,
           contract_address: contractAddress,
           event_type: "MILESTONE_APPROVED",
           milestone_id: Number(milestoneId),
           actor: approver,
-          metadata: {}
+          metadata: {
+            txHash: eventLog?.transactionHash || null,
+            logIndex: eventLog?.index ?? null
+          }
         }
-      ]);
+      );
 
-      if (error) console.error(error);
+      if (eventKey) seenEventKeys.add(eventKey);
 
     } catch (err) {
       console.error("Listener error (Approved):", err);
@@ -72,20 +111,26 @@ exports.listenToProject = (projectId, contractAddress) => {
   // =========================
   // REJECTED
   // =========================
-  contract.on("MilestoneRejected", async (milestoneId, approver) => {
+  contract.on("MilestoneRejected", async (milestoneId, approver, eventLog) => {
     try {
-      const { error } = await supabase.from("events").insert([
+      const eventKey = buildEventKey(contractAddress, eventLog);
+      if (eventKey && seenEventKeys.has(eventKey)) return;
+
+      await persistEvent(
         {
           project_id: projectId,
           contract_address: contractAddress,
           event_type: "MILESTONE_REJECTED",
           milestone_id: Number(milestoneId),
           actor: approver,
-          metadata: {}
+          metadata: {
+            txHash: eventLog?.transactionHash || null,
+            logIndex: eventLog?.index ?? null
+          }
         }
-      ]);
+      );
 
-      if (error) console.error(error);
+      if (eventKey) seenEventKeys.add(eventKey);
 
     } catch (err) {
       console.error("Listener error (Rejected):", err);
@@ -95,9 +140,12 @@ exports.listenToProject = (projectId, contractAddress) => {
   // =========================
   // FUNDS RELEASED
   // =========================
-  contract.on("FundsReleased", async (milestoneId, amount) => {
+  contract.on("FundsReleased", async (milestoneId, amount, eventLog) => {
     try {
-      const { error } = await supabase.from("events").insert([
+      const eventKey = buildEventKey(contractAddress, eventLog);
+      if (eventKey && seenEventKeys.has(eventKey)) return;
+
+      await persistEvent(
         {
           project_id: projectId,
           contract_address: contractAddress,
@@ -105,12 +153,14 @@ exports.listenToProject = (projectId, contractAddress) => {
           milestone_id: Number(milestoneId),
           actor: "system",
           metadata: {
-            amount: amount.toString()
+            amount: amount.toString(),
+            txHash: eventLog?.transactionHash || null,
+            logIndex: eventLog?.index ?? null
           }
         }
-      ]);
+      );
 
-      if (error) console.error(error);
+      if (eventKey) seenEventKeys.add(eventKey);
 
     } catch (err) {
       console.error("Listener error (FundsReleased):", err);
@@ -120,9 +170,12 @@ exports.listenToProject = (projectId, contractAddress) => {
   // =========================
   // DEADLINE EXTENDED
   // =========================
-  contract.on("DeadlineExtended", async (milestoneId, newDeadline) => {
+  contract.on("DeadlineExtended", async (milestoneId, newDeadline, eventLog) => {
     try {
-      const { error } = await supabase.from("events").insert([
+      const eventKey = buildEventKey(contractAddress, eventLog);
+      if (eventKey && seenEventKeys.has(eventKey)) return;
+
+      await persistEvent(
         {
           project_id: projectId,
           contract_address: contractAddress,
@@ -130,12 +183,14 @@ exports.listenToProject = (projectId, contractAddress) => {
           milestone_id: Number(milestoneId),
           actor: "approver",
           metadata: {
-            newDeadline: Number(newDeadline)
+            newDeadline: Number(newDeadline),
+            txHash: eventLog?.transactionHash || null,
+            logIndex: eventLog?.index ?? null
           }
         }
-      ]);
+      );
 
-      if (error) console.error(error);
+      if (eventKey) seenEventKeys.add(eventKey);
 
     } catch (err) {
       console.error("Listener error (DeadlineExtended):", err);

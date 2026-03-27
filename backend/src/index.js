@@ -10,6 +10,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.get("/health", (_req, res) => {
+  res.json({ ok: true, service: "backend" });
+});
+
 app.use("/projects", require("./routes/projects"));
 app.use("/bids", require("./routes/bids"));
 app.use("/upload", require("./routes/upload"));
@@ -20,6 +24,11 @@ app.use("/upload", require("./routes/upload"));
 // =========================
 async function initListeners() {
   try {
+    if (!process.env.RPC_URL) {
+      console.warn("Skipping listener init: RPC_URL not configured");
+      return;
+    }
+
     console.log(" Initializing blockchain listeners...");
 
     const { data: projects, error } = await supabase

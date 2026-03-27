@@ -1,7 +1,11 @@
 const { ethers } = require("ethers");
-const pool = require("../db/client");
+const supabase = require("../db/supabaseClient");
 
 const factoryAbi = require("../../abi/Factory.json");
+
+if (!process.env.RPC_URL || !process.env.PRIVATE_KEY || !process.env.FACTORY_ADDRESS) {
+  throw new Error("Missing RPC_URL, PRIVATE_KEY, or FACTORY_ADDRESS");
+}
 
 // Provider + Wallet
 const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
@@ -20,11 +24,12 @@ exports.deployProject = async (bid, projectId) => {
     // =========================
     // 1. FETCH APPROVERS POOL
     // =========================
-    const result = await pool.query(
-      "SELECT wallet_address FROM approvers"
-    );
+    const { data: approvers, error: approversError } = await supabase
+      .from("approvers")
+      .select("wallet_address");
+    if (approversError) throw approversError;
 
-    const allApprovers = result.rows.map(r => r.wallet_address);
+    const allApprovers = (approvers || []).map((r) => r.wallet_address);
 
     if (allApprovers.length < 3) {
       throw new Error("Not enough approvers in pool");
@@ -39,19 +44,22 @@ exports.deployProject = async (bid, projectId) => {
     // =========================
     // 3. STORE IN DB
     // =========================
-    for (const addr of selectedApprovers) {
-      await pool.query(
-        `INSERT INTO project_approvers (project_id, wallet_address)
-         VALUES ($1, $2)
-         ON CONFLICT DO NOTHING`,
-        [projectId, addr]
-      );
-    }
+    const rows = selectedApprovers.map((addr) => ({
+      project_id: projectId,
+      wallet_address: addr
+    }));
+    const { error: insertApproversError } = await supabase
+      .from("project_approvers")
+      .upsert(rows, { onConflict: "project_id,wallet_address" });
+    if (insertApproversError) throw insertApproversError;
 
     // =========================
     // 4. PREPARE MILESTONES
     // =========================
     const milestones = bid.milestone_data;
+    if (!Array.isArray(milestones) || milestones.length === 0) {
+      throw new Error("Bid milestones are missing");
+    }
 
     const amounts = milestones.map(m =>
       ethers.parseEther(m.amount.toString())

@@ -1,5 +1,5 @@
 const { listenToProject } = require("../listeners/events");
-const pool = require("../db/client");
+const supabase = require("../db/supabaseClient");
 const { deployProject } = require("../web3/factory");
 
 // =========================
@@ -8,29 +8,42 @@ const { deployProject } = require("../web3/factory");
 exports.submitBid = async (req, res) => {
   try {
     const { projectId, totalAmount, milestones, wallet } = req.body;
+    if (
+      !projectId ||
+      !wallet ||
+      typeof totalAmount !== "number" ||
+      !Array.isArray(milestones) ||
+      milestones.length === 0
+    ) {
+      return res.status(400).json({ error: "Invalid bid payload" });
+    }
 
     // Fetch project
-    const project = await pool.query(
-      "SELECT maximum_bid_amount FROM projects WHERE id=$1",
-      [projectId]
-    );
+    const { data: project, error: projectError } = await supabase
+      .from("projects")
+      .select("maximum_bid_amount")
+      .eq("id", projectId)
+      .single();
 
-    if (project.rows.length === 0) {
+    if (projectError || !project) {
       return res.status(404).json({ error: "Project not found" });
     }
 
     // Validate max bid
-    if (totalAmount > project.rows[0].maximum_bid_amount) {
+    if (totalAmount > project.maximum_bid_amount) {
       return res.status(400).json({ error: "Bid too high" });
     }
 
     // Insert bid
-    await pool.query(
-      `INSERT INTO bids 
-       (id, project_id, contractor_wallet, total_amount, milestone_data)
-       VALUES (gen_random_uuid(), $1, $2, $3, $4)`,
-      [projectId, wallet, totalAmount, milestones]
-    );
+    const { error: insertError } = await supabase.from("bids").insert([
+      {
+        project_id: projectId,
+        contractor_wallet: wallet,
+        total_amount: totalAmount,
+        milestone_data: milestones
+      }
+    ]);
+    if (insertError) throw insertError;
 
     res.json({ success: true });
 
@@ -48,18 +61,23 @@ exports.submitBid = async (req, res) => {
 exports.selectBid = async (req, res) => {
   try {
     const { projectId } = req.body;
+    if (!projectId) {
+      return res.status(400).json({ error: "projectId is required" });
+    }
 
     // 1. Fetch bids sorted by lowest
-    const bids = await pool.query(
-      "SELECT * FROM bids WHERE project_id=$1 ORDER BY total_amount ASC",
-      [projectId]
-    );
+    const { data: bids, error: bidsError } = await supabase
+      .from("bids")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("total_amount", { ascending: true });
+    if (bidsError) throw bidsError;
 
-    if (bids.rows.length === 0) {
+    if (!bids || bids.length === 0) {
       return res.status(400).json({ error: "No bids available" });
     }
 
-    const selected = bids.rows[0];
+    const selected = bids[0];
 
     // 2. Deploy contract (IMPORTANT: pass projectId)
     const { contractAddress, approvers } = await deployProject(
@@ -68,10 +86,11 @@ exports.selectBid = async (req, res) => {
     );
 
     // 3. Update project
-    await pool.query(
-      "UPDATE projects SET contract_address=$1, status='active' WHERE id=$2",
-      [contractAddress, projectId]
-    );
+    const { error: updateError } = await supabase
+      .from("projects")
+      .update({ contract_address: contractAddress, status: "active" })
+      .eq("id", projectId);
+    if (updateError) throw updateError;
 
     // 4. Start listening to events
     listenToProject(projectId, contractAddress);
