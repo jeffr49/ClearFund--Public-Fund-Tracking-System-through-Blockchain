@@ -813,6 +813,7 @@ document.getElementById('filterDept').addEventListener('change', filterProjects)
 /* --- Role Sidebar Logic --- */
 const SIDEBAR_CONFIG = {
     government: [
+        { id: "home", label: "Home", icon: "fa-house" },
         { id: "create_project", label: "Create Project", icon: "fa-plus-circle" },
         { id: "manage_bids", label: "Manage Bids", icon: "fa-file-signature" },
         { id: "assign_approvers", label: "Assign Approvers", icon: "fa-user-check" },
@@ -822,6 +823,7 @@ const SIDEBAR_CONFIG = {
         { id: "audit_logs", label: "Audit Logs", icon: "fa-shoe-prints" }
     ],
     contractor: [
+        { id: "home", label: "Home", icon: "fa-house" },
         { id: "available_projects", label: "Available Projects", icon: "fa-clipboard-list" },
         { id: "my_bids", label: "My Bids", icon: "fa-file-signature" },
         { id: "workdesk", label: "Workdesk", icon: "fa-hammer" },
@@ -830,6 +832,7 @@ const SIDEBAR_CONFIG = {
         { id: "contractor_stats", label: "Contractor Stats", icon: "fa-chart-pie" }
     ],
     approver: [
+        { id: "home", label: "Home", icon: "fa-house" },
         { id: "assigned_projects", label: "Assigned Projects", icon: "fa-clipboard-check" },
         { id: "pending_reviews", label: "Pending Reviews", icon: "fa-hourglass-half" },
         { id: "review_workspace", label: "Review Workspace", icon: "fa-magnifying-glass" },
@@ -853,7 +856,7 @@ const initSidebar = () => {
     const items = SIDEBAR_CONFIG[role];
     let navHTML = items.map((item, index) => `
         <li class="sidebar-item ${index === 0 ? 'active' : ''}" data-id="${item.id}">
-            <i class="fa-solid ${item.icon}"></i>
+            ${item.icon ? `<i class="fa-solid ${item.icon}"></i>` : ''}
             <span>${item.label}</span>
         </li>
     `).join('');
@@ -874,6 +877,17 @@ const initSidebar = () => {
             <i class="fa-solid fa-shield-halved"></i> Wallet Connected
         </div>
     `;
+
+    // Wire up sidebar item clicks
+    sidebar.querySelectorAll('.sidebar-item').forEach(li => {
+        li.addEventListener('click', () => {
+            sidebar.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+            li.classList.add('active');
+            if (li.dataset.id === 'home') {
+                renderGrid();
+            }
+        });
+    });
 };
 
 // Init
