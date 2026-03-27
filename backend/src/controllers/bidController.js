@@ -88,7 +88,12 @@ exports.selectBid = async (req, res) => {
     // 3. Update project
     const { error: updateError } = await supabase
       .from("projects")
-      .update({ contract_address: contractAddress, status: "active" })
+      .update({
+        contract_address: contractAddress,
+        contractor_wallet: selected.contractor_wallet,
+        selected_bid_id: selected.id,
+        status: "active"
+      })
       .eq("id", projectId);
     if (updateError) throw updateError;
 
