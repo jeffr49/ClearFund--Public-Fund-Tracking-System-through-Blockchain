@@ -5,7 +5,6 @@ const escrowAbi = require("../../abi/ProjectEscrow.json");
 
 const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
 
-// Prevent duplicate listeners
 const activeListeners = new Set();
 const seenEventKeys = new Set();
 
@@ -22,11 +21,13 @@ function buildEventKey(contractAddress, eventLog) {
 }
 
 async function persistEvent(payload) {
-  for (let attempt = 1; attempt <= INSERT_RETRIES; attempt += 1) {
+  for (let attempt = 1; attempt <= INSERT_RETRIES; attempt++) {
     const { error } = await supabase.from("events").insert([payload]);
+
     if (!error) return;
 
     if (attempt === INSERT_RETRIES) {
+      console.error("DB insert failed:", error);
       throw error;
     }
 
@@ -45,7 +46,7 @@ exports.listenToProject = (projectId, contractAddress) => {
     provider
   );
 
-  console.log("👂 Listening to:", contractAddress);
+  console.log("Listening to:", contractAddress);
 
   // =========================
   // PROOF SUBMITTED
@@ -55,27 +56,23 @@ exports.listenToProject = (projectId, contractAddress) => {
       const eventKey = buildEventKey(contractAddress, eventLog);
       if (eventKey && seenEventKeys.has(eventKey)) return;
 
-      console.log("ProofSubmitted:", milestoneId.toString());
-
-      await persistEvent(
-        {
-          project_id: projectId,
-          contract_address: contractAddress,
-          event_type: "PROOF_SUBMITTED",
-          milestone_id: Number(milestoneId),
-          actor: "contractor",
-          metadata: {
-            ipfsHash,
-            txHash: eventLog?.transactionHash || null,
-            logIndex: eventLog?.index ?? null
-          }
+      await persistEvent({
+        project_id: projectId,
+        contract_address: contractAddress,
+        event_type: "PROOF_SUBMITTED",
+        milestone_id: Number(milestoneId),
+        actor: "contractor",
+        metadata: {
+          ipfsHash: ipfsHash,
+          txHash: eventLog?.transactionHash || null,
+          logIndex: eventLog?.index ?? null
         }
-      );
+      });
 
       if (eventKey) seenEventKeys.add(eventKey);
 
     } catch (err) {
-      console.error("Listener error (ProofSubmitted):", err);
+      console.error("ProofSubmitted error:", err);
     }
   });
 
@@ -87,24 +84,22 @@ exports.listenToProject = (projectId, contractAddress) => {
       const eventKey = buildEventKey(contractAddress, eventLog);
       if (eventKey && seenEventKeys.has(eventKey)) return;
 
-      await persistEvent(
-        {
-          project_id: projectId,
-          contract_address: contractAddress,
-          event_type: "MILESTONE_APPROVED",
-          milestone_id: Number(milestoneId),
-          actor: approver,
-          metadata: {
-            txHash: eventLog?.transactionHash || null,
-            logIndex: eventLog?.index ?? null
-          }
+      await persistEvent({
+        project_id: projectId,
+        contract_address: contractAddress,
+        event_type: "MILESTONE_APPROVED",
+        milestone_id: Number(milestoneId),
+        actor: approver,
+        metadata: {
+          txHash: eventLog?.transactionHash || null,
+          logIndex: eventLog?.index ?? null
         }
-      );
+      });
 
       if (eventKey) seenEventKeys.add(eventKey);
 
     } catch (err) {
-      console.error("Listener error (Approved):", err);
+      console.error("MilestoneApproved error:", err);
     }
   });
 
@@ -116,24 +111,22 @@ exports.listenToProject = (projectId, contractAddress) => {
       const eventKey = buildEventKey(contractAddress, eventLog);
       if (eventKey && seenEventKeys.has(eventKey)) return;
 
-      await persistEvent(
-        {
-          project_id: projectId,
-          contract_address: contractAddress,
-          event_type: "MILESTONE_REJECTED",
-          milestone_id: Number(milestoneId),
-          actor: approver,
-          metadata: {
-            txHash: eventLog?.transactionHash || null,
-            logIndex: eventLog?.index ?? null
-          }
+      await persistEvent({
+        project_id: projectId,
+        contract_address: contractAddress,
+        event_type: "MILESTONE_REJECTED",
+        milestone_id: Number(milestoneId),
+        actor: approver,
+        metadata: {
+          txHash: eventLog?.transactionHash || null,
+          logIndex: eventLog?.index ?? null
         }
-      );
+      });
 
       if (eventKey) seenEventKeys.add(eventKey);
 
     } catch (err) {
-      console.error("Listener error (Rejected):", err);
+      console.error("MilestoneRejected error:", err);
     }
   });
 
@@ -145,25 +138,23 @@ exports.listenToProject = (projectId, contractAddress) => {
       const eventKey = buildEventKey(contractAddress, eventLog);
       if (eventKey && seenEventKeys.has(eventKey)) return;
 
-      await persistEvent(
-        {
-          project_id: projectId,
-          contract_address: contractAddress,
-          event_type: "FUNDS_RELEASED",
-          milestone_id: Number(milestoneId),
-          actor: "system",
-          metadata: {
-            amount: amount.toString(),
-            txHash: eventLog?.transactionHash || null,
-            logIndex: eventLog?.index ?? null
-          }
+      await persistEvent({
+        project_id: projectId,
+        contract_address: contractAddress,
+        event_type: "FUNDS_RELEASED",
+        milestone_id: Number(milestoneId),
+        actor: "system",
+        metadata: {
+          amount: amount.toString(),
+          txHash: eventLog?.transactionHash || null,
+          logIndex: eventLog?.index ?? null
         }
-      );
+      });
 
       if (eventKey) seenEventKeys.add(eventKey);
 
     } catch (err) {
-      console.error("Listener error (FundsReleased):", err);
+      console.error("FundsReleased error:", err);
     }
   });
 
@@ -175,25 +166,23 @@ exports.listenToProject = (projectId, contractAddress) => {
       const eventKey = buildEventKey(contractAddress, eventLog);
       if (eventKey && seenEventKeys.has(eventKey)) return;
 
-      await persistEvent(
-        {
-          project_id: projectId,
-          contract_address: contractAddress,
-          event_type: "DEADLINE_EXTENDED",
-          milestone_id: Number(milestoneId),
-          actor: "approver",
-          metadata: {
-            newDeadline: Number(newDeadline),
-            txHash: eventLog?.transactionHash || null,
-            logIndex: eventLog?.index ?? null
-          }
+      await persistEvent({
+        project_id: projectId,
+        contract_address: contractAddress,
+        event_type: "DEADLINE_EXTENDED",
+        milestone_id: Number(milestoneId),
+        actor: "approver",
+        metadata: {
+          newDeadline: Number(newDeadline),
+          txHash: eventLog?.transactionHash || null,
+          logIndex: eventLog?.index ?? null
         }
-      );
+      });
 
       if (eventKey) seenEventKeys.add(eventKey);
 
     } catch (err) {
-      console.error("Listener error (DeadlineExtended):", err);
+      console.error("DeadlineExtended error:", err);
     }
   });
 };

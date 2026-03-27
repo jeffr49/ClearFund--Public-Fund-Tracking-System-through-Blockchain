@@ -15,6 +15,7 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/projects", require("./routes/projects"));
+app.use("/signer", require("./routes/signer"));
 app.use("/bids", require("./routes/bids"));
 app.use("/upload", require("./routes/upload"));
 
