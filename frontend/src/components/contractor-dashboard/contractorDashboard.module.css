@@ -1,0 +1,198 @@
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1rem 3rem;
+  background: #F8FAFC;
+  color: #0F172A;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.header p {
+  margin: 0.5rem 0 0;
+  color: #64748B;
+}
+
+.walletBar {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.walletInput {
+  flex: 1;
+  padding: 0.75rem;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  background: #FFFFFF;
+  color: #0F172A;
+}
+
+.walletInput:focus {
+  outline: 2px solid rgba(37, 99, 235, 0.2);
+  border-color: #2563EB;
+}
+
+.refreshBtn {
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 8px;
+  background: #2563EB;
+  color: #fff;
+  cursor: pointer;
+}
+
+.refreshBtn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.card {
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 1rem;
+  background: #FFFFFF;
+}
+
+.projectHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.projectHeader h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.status {
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  background: rgba(37, 99, 235, 0.12);
+  color: #2563EB;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.meta {
+  margin: 0.45rem 0 0;
+  color: #64748B;
+}
+
+.progress {
+  margin-top: 0.75rem;
+  display: grid;
+  gap: 0.2rem;
+  color: #0F172A;
+  font-weight: 500;
+}
+
+.milestoneList {
+  margin-top: 0.9rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.milestoneCard {
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 0.8rem;
+  background: #FFFFFF;
+}
+
+.milestoneRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.milestoneRow h4 {
+  margin: 0;
+}
+
+.actionRow {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.actionRow button {
+  padding: 0.45rem 0.7rem;
+  border: none;
+  border-radius: 8px;
+  background: #2563EB;
+  color: white;
+  cursor: pointer;
+}
+
+.proofLink {
+  display: inline-block;
+  margin-top: 0.35rem;
+}
+
+.timeline {
+  margin-top: 1rem;
+}
+
+.timeline h3 {
+  margin: 0 0 0.5rem;
+}
+
+.timelineItem {
+  font-size: 0.9rem;
+  color: #64748B;
+  margin-top: 0.3rem;
+}
+
+.emptyState {
+  margin-top: 1rem;
+  padding: 0.9rem;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  color: #64748B;
+}
+
+.inlineState {
+  margin-top: 0.6rem;
+  color: #64748B;
+}
+
+.error {
+  margin-top: 0.6rem;
+  color: #b91c1c;
+  font-size: 0.9rem;
+}
+
+.errorRow {
+  margin-top: 0.6rem;
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.retryBtn {
+  border: 1px solid #E2E8F0;
+  background: #FFFFFF;
+  border-radius: 8px;
+  padding: 0.35rem 0.7rem;
+  cursor: pointer;
+  color: #0F172A;
+}
+
+.retryBtn:hover {
+  border-color: #2563EB;
+  color: #2563EB;
+}

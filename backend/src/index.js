@@ -17,6 +17,7 @@ app.get("/health", (_req, res) => {
 app.use("/projects", require("./routes/projects"));
 app.use("/bids", require("./routes/bids"));
 app.use("/upload", require("./routes/upload"));
+app.use("/contractor", require("./routes/contractor"));
 
 
 // =========================
