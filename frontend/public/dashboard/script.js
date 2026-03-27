@@ -810,8 +810,75 @@ document.getElementById('filterStatus').addEventListener('change', filterProject
 document.getElementById('filterCategory').addEventListener('change', filterProjects);
 document.getElementById('filterDept').addEventListener('change', filterProjects);
 
+/* --- Role Sidebar Logic --- */
+const SIDEBAR_CONFIG = {
+    government: [
+        { id: "create_project", label: "Create Project", icon: "fa-plus-circle" },
+        { id: "manage_bids", label: "Manage Bids", icon: "fa-file-signature" },
+        { id: "assign_approvers", label: "Assign Approvers", icon: "fa-user-check" },
+        { id: "fund_escrow", label: "Fund Escrow", icon: "fa-money-bill-transfer" },
+        { id: "milestone_setup", label: "Milestone Setup", icon: "fa-list-check" },
+        { id: "project_status", label: "Project Status Control", icon: "fa-sliders" },
+        { id: "audit_logs", label: "Audit Logs", icon: "fa-shoe-prints" }
+    ],
+    contractor: [
+        { id: "available_projects", label: "Available Projects", icon: "fa-clipboard-list" },
+        { id: "my_bids", label: "My Bids", icon: "fa-file-signature" },
+        { id: "workdesk", label: "Workdesk", icon: "fa-hammer" },
+        { id: "submit_proof", label: "Submit Proof", icon: "fa-cloud-arrow-up" },
+        { id: "payments", label: "Payments", icon: "fa-sack-dollar" },
+        { id: "contractor_stats", label: "Contractor Stats", icon: "fa-chart-pie" }
+    ],
+    approver: [
+        { id: "assigned_projects", label: "Assigned Projects", icon: "fa-clipboard-check" },
+        { id: "pending_reviews", label: "Pending Reviews", icon: "fa-hourglass-half" },
+        { id: "review_workspace", label: "Review Workspace", icon: "fa-magnifying-glass" },
+        { id: "decisions", label: "Decisions", icon: "fa-gavel" },
+        { id: "decision_history", label: "Decision History", icon: "fa-clock-rotate-left" },
+        { id: "review_deadlines", label: "Review Deadlines", icon: "fa-calendar-xmark" },
+        { id: "logs", label: "Logs", icon: "fa-list-ul" }
+    ]
+};
+
+const initSidebar = () => {
+    const params = new URLSearchParams(window.location.search);
+    const role = params.get('role') || 'public';
+    const sidebar = document.getElementById('roleSidebar');
+    
+    if (role === 'public' || !SIDEBAR_CONFIG[role]) {
+        sidebar.classList.add('hidden');
+        return;
+    }
+
+    const items = SIDEBAR_CONFIG[role];
+    let navHTML = items.map((item, index) => `
+        <li class="sidebar-item ${index === 0 ? 'active' : ''}" data-id="${item.id}">
+            <i class="fa-solid ${item.icon}"></i>
+            <span>${item.label}</span>
+        </li>
+    `).join('');
+
+    sidebar.innerHTML = `
+        <div class="sidebar-header">
+            <div class="sidebar-brand">
+                <i class="fa-solid fa-link"></i> ClearFund
+            </div>
+            <div class="sidebar-role-badge">${role} Panel</div>
+        </div>
+        <nav class="sidebar-nav">
+            <ul class="sidebar-menu">
+                ${navHTML}
+            </ul>
+        </nav>
+        <div class="sidebar-footer">
+            <i class="fa-solid fa-shield-halved"></i> Wallet Connected
+        </div>
+    `;
+};
+
 // Init
 document.addEventListener('DOMContentLoaded', () => {
+    initSidebar();
     initMap();
     initLocationAutocomplete();
     // Hide modal initially
