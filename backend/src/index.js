@@ -18,6 +18,7 @@ app.use("/projects", require("./routes/projects"));
 app.use("/signer", require("./routes/signer"));
 app.use("/bids", require("./routes/bids"));
 app.use("/upload", require("./routes/upload"));
+app.use("/contractor", require("./routes/contractor"));
 
 
 // =========================

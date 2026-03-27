@@ -1,33 +1,29 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import styles from "../placeholder.module.css";
+import styles from "../../placeholder.module.css";
 
-export default function GovDashboard() {
+export default function ApproverDashboard() {
   const router = useRouter();
 
   return (
     <div className={styles.placeholderPage}>
       <div className={styles.icon}>
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="2" y="20" width="20" height="2"></rect>
-          <rect x="4" y="10" width="16" height="10"></rect>
-          <path d="M12 2L2 8v2h20V8L12 2z"></path>
-          <path d="M12 10v10"></path>
-          <path d="M8 10v10"></path>
-          <path d="M16 10v10"></path>
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+          <polyline points="22 4 12 14.01 9 11.01"></polyline>
         </svg>
       </div>
-      <h1 className={styles.title}>Government Dashboard</h1>
+      <h1 className={styles.title}>Approver Dashboard</h1>
       <div className={styles.roleBadge}>
         <span className={styles.roleDot}></span>
-        government
+        approver
       </div>
       <p className={styles.subtitle}>
-        This is the government dashboard placeholder. Fund allocation, project
-        oversight, and budget management features will appear here.
+        This is the approver dashboard placeholder. Milestone verification,
+        fund release approvals, and audit trail features will appear here.
       </p>
-      <button className={styles.walletBtn} onClick={() => alert("Hardware Wallet connection flow initiated...")}>
+      <button className={styles.walletBtn} onClick={() => window.location.href = '/dashboard/index.html?role=approver'}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"></path>
           <path d="M3 5v14a2 2 0 0 0 2 2h16v-5"></path>

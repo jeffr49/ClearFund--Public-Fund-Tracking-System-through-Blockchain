@@ -44,13 +44,15 @@ exports.deployProject = async (bid, projectId) => {
     // =========================
     // 3. STORE IN DB
     // =========================
-    const rows = selectedApprovers.map((addr) => ({
-      project_id: projectId,
-      wallet_address: addr
-    }));
     const { error: insertApproversError } = await supabase
       .from("project_approvers")
-      .upsert(rows, { onConflict: "project_id,wallet_address" });
+      .upsert(
+        {
+          project_id: projectId,
+          wallet_address: selectedApprovers
+        },
+        { onConflict: "project_id" }
+      );
     if (insertApproversError) throw insertApproversError;
 
     // =========================

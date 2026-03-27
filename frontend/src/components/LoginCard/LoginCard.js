@@ -64,7 +64,7 @@ const ROLES = [
     id: "public",
     label: "Public Citizen",
     icon: Icons.Users,
-    route: "/public",
+    route: "/dashboard/index.html?role=public",
   },
 ];
 
@@ -138,11 +138,20 @@ export default function LoginCard() {
 
     const role = ROLES.find((r) => r.id === selectedRole);
     if (role) {
+      let routePath = "";
       if (role.subRoles) {
         const sub = role.subRoles.find(s => s.id === selectedSubRole);
-        if (sub) router.push(sub.route);
+        if (sub) routePath = sub.route;
       } else {
-        router.push(role.route);
+        routePath = role.route;
+      }
+
+      if (routePath) {
+        if (routePath.startsWith("http") || routePath.startsWith("/dashboard")) {
+          window.location.href = routePath;
+        } else {
+          router.push(routePath);
+        }
       }
     }
   }

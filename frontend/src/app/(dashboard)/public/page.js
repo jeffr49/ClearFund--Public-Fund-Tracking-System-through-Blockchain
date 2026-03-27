@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import styles from "../placeholder.module.css";
+import styles from "../../placeholder.module.css";
 
 export default function PublicDashboard() {
   const router = useRouter();
