@@ -37,8 +37,8 @@ const projects = [
         events: [
             { date: "2024-11-01", title: "Project Approved", desc: "Funds allocated to smart contract escrow by the Ministry." },
             { date: "2024-12-15", title: "Contractor Assigned", desc: "L&T Infrastructure selected via open decentralized bidding." },
-            { date: "2025-02-16", title: "Milestone 1 Payment", desc: "$500k released automatically upon Oracle verification." },
-            { date: "2025-06-05", title: "Milestone 2 Payment", desc: "$1M released upon successful on-chain audit." }
+            { date: "2025-02-16", title: "Milestone 1 Payment", desc: "₹500k released automatically upon Oracle verification." },
+            { date: "2025-06-05", title: "Milestone 2 Payment", desc: "₹1M released upon successful on-chain audit." }
         ]
     },
     {
@@ -344,7 +344,7 @@ const projects = [
 ];
 
 const formatCurrency = (num) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
+    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(num);
 };
 
 // Comprehensive list of Indian cities for autocomplete
@@ -432,11 +432,16 @@ let map;
 let markersLayer;
 
 const initMap = () => {
-    map = L.map('map').setView([22.5, 78.5], 4); // Center over India mostly
+    map = L.map('map', {
+        minZoom: 2,
+        worldCopyJump: false
+    }).setView([22.5, 78.5], 4); 
+    
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
         subdomains: 'abcd',
-        maxZoom: 20
+        maxZoom: 20,
+        noWrap: true
     }).addTo(map);
     markersLayer = L.layerGroup().addTo(map);
 };
@@ -458,11 +463,11 @@ const renderStats = (data) => {
         </div>
         <div class="stat-card">
             <div class="stat-icon blue"><i class="fa-solid fa-coins"></i></div>
-            <div class="stat-info"><span>Total Budget</span><strong>${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 }).format(totalBudget)}</strong></div>
+            <div class="stat-info"><span>Total Budget</span><strong>${new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', notation: 'compact', maximumFractionDigits: 1 }).format(totalBudget)}</strong></div>
         </div>
         <div class="stat-card">
             <div class="stat-icon green"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
-            <div class="stat-info"><span>Funds Released</span><strong>${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 }).format(totalReleased)}</strong></div>
+            <div class="stat-info"><span>Funds Released</span><strong>${new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', notation: 'compact', maximumFractionDigits: 1 }).format(totalReleased)}</strong></div>
         </div>
         <div class="stat-card">
             <div class="stat-icon blue"><i class="fa-solid fa-spinner"></i></div>
@@ -493,29 +498,38 @@ const renderMapMarkers = (data) => {
     data.forEach(p => {
         if(p.lat && p.lng) {
             const color = getStatusColor(p.status);
-            const markerHtmlStyles = `
-              background-color: ${color};
-              width: 1.5rem;
-              height: 1.5rem;
-              display: block;
-              left: -0.75rem;
-              top: -0.75rem;
-              position: relative;
-              border-radius: 50%;
-              border: 3px solid #FFFFFF;
-              box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2);
-              cursor: pointer;
-            `.replace(/\n/g, "");
+            
+            const markerHtml = `
+              <div class="gps-pin-container">
+                <div class="gps-pin" style="background-color: ${color};"></div>
+                <div class="gps-pin-dot"></div>
+              </div>
+            `;
             
             const icon = L.divIcon({
-              className: "custom-pin",
-              iconAnchor: [0, 0],
-              html: `<span style="${markerHtmlStyles}"></span>`
+              className: "custom-gps-pin",
+              iconSize: [30, 42],
+              iconAnchor: [15, 42],
+              popupAnchor: [0, -40],
+              tooltipAnchor: [0, -38],
+              html: markerHtml
             });
             
             const marker = L.marker([p.lat, p.lng], { icon }).addTo(markersLayer);
             
-            // Add popup
+            // Tooltip on hover
+            marker.bindTooltip(`
+                <div style="font-family: inherit;">
+                    <strong style="display:block; font-size: 0.9rem; margin-bottom: 4px; color: var(--text-primary);">${p.title}</strong>
+                    <span class="badge ${p.status}" style="font-size:0.6rem; padding: 2px 8px; font-weight: 800; border: 1px solid rgba(0,0,0,0.08);">${p.status.toUpperCase()}</span>
+                </div>
+            `, {
+                direction: 'top',
+                opacity: 0.98,
+                sticky: false
+            });
+            
+            // Popup on click
             marker.bindPopup(`<b>${p.title}</b><br>${p.location}<br><br><span class="badge ${p.status}" style="font-size:0.6rem; padding:0.2rem 0.5rem; margin-top:0.4rem; border:1px solid rgba(0,0,0,0.1)">${p.status.toUpperCase()}</span>`);
             
             marker.on('click', () => openModal(p.id));
@@ -786,7 +800,7 @@ document.getElementById('filterBudget').addEventListener('input', (e) => {
     const val = parseInt(e.target.value);
     const label = document.getElementById('budgetValue');
     if(val >= 10000000) label.textContent = "All";
-    else label.textContent = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0, notation: 'compact' }).format(val);
+    else label.textContent = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, notation: 'compact' }).format(val);
     filterProjects();
 });
 
