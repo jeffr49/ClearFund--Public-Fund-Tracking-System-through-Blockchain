@@ -8,12 +8,14 @@ const {
   getProjectDetails,
   uploadProof,
   submitProof,
-  getContractorTimeline
+  getContractorTimeline,
+  getContractorStats
 } = require("../controllers/contractorController");
 
 router.get("/projects", getContractorProjects);
 router.get("/project/:id", getProjectDetails);
 router.get("/events/:projectId", getContractorTimeline);
+router.get("/stats", getContractorStats);
 router.post("/upload", upload.single("file"), uploadProof);
 router.post("/submit-proof", submitProof);
 

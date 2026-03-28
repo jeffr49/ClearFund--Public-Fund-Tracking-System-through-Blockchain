@@ -21,6 +21,16 @@ async function getApprovalThreshold(contractAddress) {
   }
 }
 
+function calculateScore(stats) {
+    const { total_milestones, on_time_milestones, completed_projects } = stats;
+    if (total_milestones === 0) return 100; // Perfect score for new contractors
+
+    let score = (on_time_milestones / total_milestones) * 80; // 80% weight on timing
+    score += (completed_projects > 0 ? 20 : 0); // 20% bonus for having completed at least one project
+    
+    return Math.min(100, Math.round(score));
+}
+
 function deriveMilestoneStatus(milestoneEvents, approvalThreshold) {
   const hasRejection = milestoneEvents.some(
     (event) => event.event_type === "MILESTONE_REJECTED"
@@ -206,18 +216,146 @@ exports.uploadProof = async (req, res) => {
 };
 
 exports.submitProof = async (req, res) => {
-  const { contractAddress, milestoneId, ipfsHash } = req.body;
-  if (!contractAddress || milestoneId === undefined || !ipfsHash) {
-    return res.status(400).json({
-      error: "contractAddress, milestoneId and ipfsHash are required"
-    });
-  }
+  try {
+    const { projectId, contractAddress, milestoneId, ipfsHash, actor } = req.body;
+    if (!contractAddress || milestoneId === undefined || !ipfsHash || !projectId) {
+      return res.status(400).json({
+        error: "projectId, contractAddress, milestoneId and ipfsHash are required"
+      });
+    }
 
-  return res.json({
-    ok: true,
-    message: "Submit proof transaction from frontend wallet signer.",
-    payload: { contractAddress, milestoneId, ipfsHash }
-  });
+    // Insert event into Supabase
+    const { data: eventData, error: eventError } = await supabase
+      .from("events")
+      .insert([
+        {
+          project_id: projectId,
+          contract_address: contractAddress,
+          event_type: "PROOF_SUBMITTED",
+          milestone_id: milestoneId,
+          actor: actor || "CONTRACTOR",
+          metadata: { ipfsHash }
+        }
+      ])
+      .select()
+      .single();
+
+    if (eventError) throw eventError;
+
+    return res.json({
+      ok: true,
+      message: "Proof submission recorded in database.",
+      event: eventData
+    });
+  } catch (err) {
+    console.error("submitProof error:", err);
+    return res.status(500).json({ error: "Failed to submit proof to database" });
+  }
+};
+
+exports.getContractorStats = async (req, res) => {
+  try {
+    const wallet = req.query.wallet;
+    if (!wallet) {
+      return res.status(400).json({ error: "wallet is required" });
+    }
+
+    // 1. Fetch all projects for this contractor
+    const { data: projects, error: projectsError } = await supabase
+      .from("projects")
+      .select("id, status, title")
+      .eq("contractor_wallet", wallet);
+
+    if (projectsError) throw projectsError;
+
+    if (!projects || projects.length === 0) {
+      return res.json({
+        total_projects: 0,
+        completed_projects: 0,
+        total_milestones: 0,
+        on_time_milestones: 0,
+        delayed_milestones: 0,
+        total_earnings_wei: "0",
+        score: 100,
+        average_delay_days: 0
+      });
+    }
+
+    const projectIds = projects.map(p => p.id);
+
+    // 2. Fetch all milestones for these projects
+    const { data: milestones, error: milestonesError } = await supabase
+      .from("milestones")
+      .select("id, project_id, deadline, amount, milestone_index")
+      .in("project_id", projectIds);
+
+    if (milestonesError) throw milestonesError;
+
+    // 3. Fetch all approval events for these projects
+    const { data: events, error: eventsError } = await supabase
+      .from("events")
+      .select("project_id, milestone_id, created_at, event_type, metadata")
+      .in("project_id", projectIds)
+      .in("event_type", ["MILESTONE_APPROVED", "FUNDS_RELEASED"]);
+
+    if (eventsError) throw eventsError;
+
+    // Calculate stats
+    const completed_projects = projects.filter(p => p.status === 'completed').length;
+    const total_milestones = milestones.length;
+    
+    let on_time_count = 0;
+    let delayed_count = 0;
+    let total_delay_ms = 0;
+    let total_earnings_wei = 0n;
+
+    milestones.forEach(ms => {
+        // Find if this milestone was approved
+        const approvalEvent = events.find(e => 
+            e.project_id === ms.project_id && 
+            Number(e.milestone_id) === ms.milestone_index && 
+            e.event_type === "MILESTONE_APPROVED"
+        );
+
+        if (approvalEvent) {
+            const deadline = new Date(ms.deadline);
+            const approvalDate = new Date(approvalEvent.created_at);
+            
+            if (approvalDate <= deadline) {
+                on_time_count++;
+            } else {
+                delayed_count++;
+                total_delay_ms += (approvalDate - deadline);
+            }
+
+            try {
+                total_earnings_wei += BigInt(ms.amount || 0);
+            } catch (e) {}
+        }
+    });
+
+    const average_delay_days = delayed_count > 0 
+        ? Math.round(total_delay_ms / (delayed_count * 1000 * 60 * 60 * 24)) 
+        : 0;
+
+    const stats = {
+        total_projects: projects.length,
+        completed_projects,
+        total_milestones,
+        on_time_milestones: on_time_count,
+        delayed_milestones: delayed_count,
+        total_earnings_wei: total_earnings_wei.toString(),
+        average_delay_days
+    };
+
+    stats.score = calculateScore(stats);
+
+    return res.json(stats);
+
+  } catch (err) {
+    console.error("getContractorStats error:", err);
+    return res.status(500).json({ error: "Failed to fetch contractor stats" });
+  }
 };
 
 exports.getContractorTimeline = async (req, res) => {

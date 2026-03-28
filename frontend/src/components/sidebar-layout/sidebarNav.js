@@ -11,12 +11,12 @@ export const SIDEBAR_NAV = {
   ],
   contractor: [
     { href: "/dashboard?role=contractor", label: "Home" },
-    { label: "Available Projects", soon: true },
-    { label: "My Bids", soon: true },
+    { href: "/contractor/available", label: "Available Projects" },
+    { href: "/contractor/bids", label: "My Bids" },
     { label: "Workdesk", soon: true },
-    { label: "Submit Proof", soon: true },
+    { href: "/contractor/proofs", label: "Submit Proof" },
     { label: "Payments", soon: true },
-    { label: "Stats", soon: true }
+    { href: "/contractor/stats", label: "Stats" }
   ],
   approver: [
     { href: "/dashboard?role=approver", label: "Home" },
