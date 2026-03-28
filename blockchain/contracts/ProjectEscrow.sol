@@ -126,6 +126,11 @@ contract ProjectEscrow {
         m.approvals++;
 
         emit MilestoneApproved(id, msg.sender);
+
+        // Consensus reached: release funds automatically
+        if (m.approvals >= approvalThreshold && !m.released) {
+            _releaseFunds(id);
+        }
     }
 
     function rejectMilestone(uint256 id)
@@ -142,18 +147,25 @@ contract ProjectEscrow {
         m.rejections++;
 
         emit MilestoneRejected(id, msg.sender);
+
+        // Consensus rejected: extend deadline automatically
+        if (m.rejections >= approvalThreshold) {
+            _extendDeadline(id, 7 days);
+        }
     }
 
     function extendDeadline(uint256 id, uint256 extraTime)
         public
         onlyApprover
     {
-        Milestone storage m = milestones[id];
+        _extendDeadline(id, extraTime);
+    }
 
+    function _extendDeadline(uint256 id, uint256 extraTime) internal {
+        Milestone storage m = milestones[id];
         require(!m.released, "Already completed");
 
         m.deadline += extraTime;
-
         emit DeadlineExtended(id, m.deadline);
     }
 
@@ -162,6 +174,10 @@ contract ProjectEscrow {
      *         pay the contractor's bank account for `m.amount` INR off-chain.
      */
     function releaseFunds(uint256 id) public {
+        _releaseFunds(id);
+    }
+
+    function _releaseFunds(uint256 id) internal {
         Milestone storage m = milestones[id];
 
         require(m.approvals >= approvalThreshold, "Not enough approvals");

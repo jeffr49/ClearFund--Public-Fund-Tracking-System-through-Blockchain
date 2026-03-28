@@ -256,12 +256,12 @@ export default function ProjectsLedgerOverview({
             const segments =
               total > 0
                 ? Array.from({ length: total }, (_, i) => {
-                    let cls = "progress-segment";
-                    if (i < done) cls += " completed";
-                    else if (i === done && p.display_status === "ongoing")
-                      cls += " current";
-                    return <div key={i} className={cls} />;
-                  })
+                  let cls = "progress-segment";
+                  if (i < done) cls += " completed";
+                  else if (i === done && p.display_status === "ongoing")
+                    cls += " current";
+                  return <div key={i} className={cls} />;
+                })
                 : [<div key="na" className="progress-segment" style={{ flex: 1 }} />];
 
             return (
@@ -301,6 +301,13 @@ export default function ProjectsLedgerOverview({
                   <strong>Current phase</strong>
                   {p.current_phase}
                 </div>
+                {p.project_deadline && (
+                  <div className="status-snapshot" style={{ marginTop: "0.5rem" }}>
+                    <strong>Implementation Deadline</strong>
+                    <i className="fa-regular fa-calendar-check" style={{ marginRight: 8, color: "var(--accent-green)" }}></i>
+                    {new Date(p.project_deadline).toLocaleDateString()}
+                  </div>
+                )}
               </div>
             );
           })}

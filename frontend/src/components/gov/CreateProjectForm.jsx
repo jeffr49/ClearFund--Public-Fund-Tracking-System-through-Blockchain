@@ -18,6 +18,7 @@ export default function CreateProjectForm({ ledgerHref = DEFAULT_LEDGER } = {}) 
   const [locationLat, setLocationLat] = useState("");
   const [locationLng, setLocationLng] = useState("");
   const [biddingDeadlineLocal, setBiddingDeadlineLocal] = useState("");
+  const [projectDeadlineLocal, setProjectDeadlineLocal] = useState("");
   const [maximumBidAmount, setMaximumBidAmount] = useState("");
   const [governmentWallet, setGovernmentWallet] = useState("");
   const emptyMilestone = () => ({ title: "", description: "" });
@@ -55,6 +56,10 @@ export default function CreateProjectForm({ ledgerHref = DEFAULT_LEDGER } = {}) 
     if (!Number.isFinite(lng)) fe.locationLng = "Valid longitude required.";
     else if (lng < -180 || lng > 180) fe.locationLng = "Longitude must be between -180 and 180.";
     if (!biddingDeadlineLocal) fe.biddingDeadline = "Bidding deadline is required.";
+    if (!projectDeadlineLocal) fe.projectDeadline = "Project implementation deadline is required.";
+    else if (new Date(projectDeadlineLocal) <= new Date(biddingDeadlineLocal)) {
+      fe.projectDeadline = "Project deadline must be after bidding deadline.";
+    }
     const maxBid = Number(maximumBidAmount);
     if (!Number.isFinite(maxBid) || maxBid <= 0) {
       fe.maximumBidAmount = "Enter a positive maximum bid amount.";
@@ -102,6 +107,7 @@ export default function CreateProjectForm({ ledgerHref = DEFAULT_LEDGER } = {}) 
             lng: Number(locationLng)
           },
           biddingDeadline: deadlineIso,
+          projectDeadline: new Date(projectDeadlineLocal).toISOString(),
           maximumBidAmount: Number(maximumBidAmount),
           governmentWallet: governmentWallet.trim(),
           milestones: milestones.map((m) => ({
@@ -311,6 +317,26 @@ export default function CreateProjectForm({ ledgerHref = DEFAULT_LEDGER } = {}) 
         />
         {fieldErrors.biddingDeadline ? (
           <span className={styles.fieldError}>{fieldErrors.biddingDeadline}</span>
+        ) : null}
+      </div>
+
+      <div className={styles.group}>
+        <label className={styles.label} htmlFor="cf-proj-deadline">
+          Project Implementation Deadline
+        </label>
+        <input
+          id="cf-proj-deadline"
+          type="datetime-local"
+          className={styles.input}
+          value={projectDeadlineLocal}
+          onChange={(e) => setProjectDeadlineLocal(e.target.value)}
+          disabled={submitting}
+        />
+        <p className={styles.hint}>
+          This final date will be enforced heavily as the rigid deadline for the project's final milestone.
+        </p>
+        {fieldErrors.projectDeadline ? (
+          <span className={styles.fieldError}>{fieldErrors.projectDeadline}</span>
         ) : null}
       </div>
 

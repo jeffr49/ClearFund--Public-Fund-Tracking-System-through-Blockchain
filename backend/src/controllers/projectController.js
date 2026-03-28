@@ -13,6 +13,7 @@ exports.createProject = async (req, res) => {
       biddingDeadline,
       maximumBidAmount,
       governmentWallet,
+      projectDeadline,
       milestones: milestoneDefs
     } = req.body;
 
@@ -47,6 +48,7 @@ exports.createProject = async (req, res) => {
           location_address: location.address,
           government_wallet: governmentWallet,
           bidding_deadline: biddingDeadline,
+          deadline: projectDeadline,
           maximumBidAmount: maximumBidAmount,
           status: "bidding"
         }
@@ -62,7 +64,7 @@ exports.createProject = async (req, res) => {
       title: (m.title || "").trim() || null,
       description: (m.description || "").trim() || null,
       amount: null,
-      deadline: null
+      deadline: idx === milestoneDefs.length - 1 ? projectDeadline : null
     }));
 
     const { error: msError } = await supabase.from("milestones").insert(milestoneRows);
@@ -108,7 +110,7 @@ exports.getProjectsOverview = async (req, res) => {
         .eq("event_type", "FUNDS_RELEASED"),
       supabase
         .from("milestones")
-        .select("project_id, milestone_index, title, description")
+        .select("project_id, milestone_index, title, description, deadline")
     ]);
 
     if (projectsError) throw projectsError;
@@ -156,7 +158,8 @@ exports.getProjectsOverview = async (req, res) => {
       milestonesByProject.get(row.project_id).push({
         milestone_index: row.milestone_index,
         title: row.title,
-        description: row.description
+        description: row.description,
+        deadline: row.deadline
       });
     }
     for (const arr of milestonesByProject.values()) {
@@ -208,6 +211,7 @@ exports.getProjectsOverview = async (req, res) => {
         total_milestones: totalMs,
         completed_milestones: completedDisplay,
         current_phase: currentPhase,
+        project_deadline: p.deadline,
         milestones: milestonesByProject.get(pid) || []
       };
     });
