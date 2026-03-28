@@ -62,11 +62,24 @@ export default function SignerDashboard({ walletAddress }) {
           <p>Milestone #{task.milestone_id}</p>
           <p>{task.description}</p>
 
-          <img
-            src={task.ipfsHash ? `https://gateway.pinata.cloud/ipfs/${task.ipfsHash}` : ""}
-            width={300}
-            alt="proof"
-          />
+          {task.ipfsHash && task.ipfsHash.split(',').map((hash, idx) => {
+             const url = `https://gateway.pinata.cloud/ipfs/${hash.trim()}`;
+             return (
+               <div key={idx} style={{ marginBottom: 10 }}>
+                 <a href={url} target="_blank" rel="noreferrer" style={{ color: "#0066cc", textDecoration: "underline" }}>
+                   View Proof {idx + 1}
+                 </a>
+                 <br />
+                 <img
+                   src={url}
+                   width={300}
+                   alt={`proof-${idx}`}
+                   style={{ marginTop: 5, borderRadius: 8, border: "1px solid #eee" }}
+                   onError={(e) => { e.target.style.display = 'none'; }}
+                 />
+               </div>
+             );
+          })}
 
           <div style={{ marginTop: 10 }}>
             <button onClick={() => handleAction(task, "approve")}>

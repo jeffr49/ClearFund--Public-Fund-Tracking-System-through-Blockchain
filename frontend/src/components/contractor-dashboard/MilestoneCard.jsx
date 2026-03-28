@@ -12,15 +12,16 @@ export default function MilestoneCard({
   milestone,
   contractAddress,
   onSubmitted,
-  apiBase
+  apiBase,
+  isNext
 }) {
-  const [file, setFile] = useState(null);
+  const [files, setFiles] = useState([]);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const uploadAndSubmit = async () => {
-    if (!file) {
-      setError("Select a file first.");
+    if (!files || files.length === 0) {
+      setError("Select at least one file first.");
       return;
     }
     if (!contractAddress) {
@@ -32,17 +33,23 @@ export default function MilestoneCard({
       setSubmitting(true);
       setError("");
 
-      const formData = new FormData();
-      formData.append("file", file);
+      const hashes = [];
+      for (const f of files) {
+        const formData = new FormData();
+        formData.append("file", f);
 
-      const uploadRes = await fetch(`${apiBase}/contractor/upload`, {
-        method: "POST",
-        body: formData
-      });
-      if (!uploadRes.ok) {
-        throw new Error("IPFS upload failed");
+        const uploadRes = await fetch(`${apiBase}/contractor/upload`, {
+          method: "POST",
+          body: formData
+        });
+        if (!uploadRes.ok) {
+          throw new Error("IPFS upload failed");
+        }
+        const { ipfsHash } = await uploadRes.json();
+        hashes.push(ipfsHash);
       }
-      const { ipfsHash } = await uploadRes.json();
+      
+      const ipfsHash = hashes.join(',');
 
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
@@ -66,10 +73,10 @@ export default function MilestoneCard({
 
   const getStatusInfo = (s) => {
     switch (s) {
-      case "yet_to_start": return { label: "Yet to Start", bg: "#f1f5f9", color: "#64748b" };
-      case "working": return { label: "In Progress", bg: "#e0f2fe", color: "#0284c7" };
-      case "completed": return { label: "Completed", bg: "#dcfce7", color: "#16a34a" };
-      case "deadline_extended": return { label: "Deadline Extended", bg: "#fef3c7", color: "#d97706" };
+      case "NOT_SUBMITTED": return { label: "Pending", bg: "#f1f5f9", color: "#64748b" };
+      case "UNDER_REVIEW": return { label: "Under Review", bg: "#fef9c3", color: "#854d0e" };
+      case "APPROVED": return { label: "Completed", bg: "#dcfce7", color: "#16a34a" };
+      case "REJECTED": return { label: "Rejected", bg: "#fee2e2", color: "#991b1b" };
       default: return { label: s || "Pending", bg: "#f1f5f9", color: "#64748b" };
     }
   };
@@ -114,18 +121,24 @@ export default function MilestoneCard({
       </p>
       <p>Deadline: {deadlineLabel}</p>
 
-      {milestone.ipfsUrl ? (
-        <a href={milestone.ipfsUrl} target="_blank" rel="noreferrer" className={styles.proofLink}>
-          View uploaded proof
-        </a>
+      {milestone.ipfsUrls && milestone.ipfsUrls.length > 0 ? (
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          {milestone.ipfsUrls.map((url, i) => (
+            <a key={i} href={url} target="_blank" rel="noreferrer" className={styles.proofLink}>
+              View uploaded proof {i + 1}
+            </a>
+          ))}
+        </div>
       ) : null}
 
-      <div className={styles.actionRow}>
-        <input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} />
-        <button onClick={uploadAndSubmit} disabled={submitting}>
-          {submitting ? "Submitting..." : milestone.ipfsHash ? "Resubmit Proof" : "Submit Proof"}
-        </button>
-      </div>
+      {(milestone.status === 'NOT_SUBMITTED' || milestone.status === 'REJECTED') && isNext && (
+        <div className={styles.actionRow}>
+          <input type="file" multiple onChange={(e) => setFiles(Array.from(e.target.files) || [])} />
+          <button onClick={uploadAndSubmit} disabled={submitting}>
+            {submitting ? "Submitting..." : milestone.ipfsHash ? "Resubmit Proof" : "Submit Proof"}
+          </button>
+        </div>
+      )}
       {error ? <div className={styles.error}>{error}</div> : null}
     </div>
   );

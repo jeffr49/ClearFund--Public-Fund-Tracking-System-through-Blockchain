@@ -101,6 +101,13 @@ export default function ContractorStatsPage() {
                   </div>
                 </div>
                 <div className="stat-mini-card" style={{ background: "white", padding: "1.5rem", borderRadius: "20px", border: "1px solid var(--border-color)", display: "flex", gap: "1rem", alignItems: "center" }}>
+                  <div className="icon-wrap indigo" style={{ width: "60px", height: "60px", background: "#eef2ff", color: "#4f46e5", borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.5rem" }}><i className="fa-solid fa-person-digging"></i></div>
+                  <div className="info-wrap">
+                    <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: "600" }}>Ongoing Projects</span>
+                    <strong style={{ display: "block", fontSize: "1.5rem" }}>{stats.ongoing_projects || 0}</strong>
+                  </div>
+                </div>
+                <div className="stat-mini-card" style={{ background: "white", padding: "1.5rem", borderRadius: "20px", border: "1px solid var(--border-color)", display: "flex", gap: "1rem", alignItems: "center" }}>
                   <div className="icon-wrap green" style={{ width: "60px", height: "60px", background: "#f0fdf4", color: "#10b981", borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.5rem" }}><i className="fa-solid fa-sack-dollar"></i></div>
                   <div className="info-wrap">
                     <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: "600" }}>Total Earnings</span>
@@ -158,17 +165,17 @@ export default function ContractorStatsPage() {
               <div className="breakdown-card" style={{ background: "white", padding: "2rem", borderRadius: "24px", border: "1px solid var(--border-color)" }}>
                 <h3 style={{ fontSize: "1.25rem", fontWeight: "800", marginBottom: "1.5rem" }}><i className="fa-solid fa-medal" style={{ color: "var(--primary-color)", marginRight: "10px" }}></i> Badges & Achievements</h3>
                 <div className="badges-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1rem" }}>
-                  <div style={{ textAlign: "center", padding: "1rem", borderRadius: "16px", background: stats.completed_projects >= 1 ? "#f0fdf4" : "var(--bg-secondary)", border: `1px solid ${stats.completed_projects >= 1 ? "#bbf7d0" : "var(--border-color)"}` }}>
+                  <div className="badge-with-tooltip" data-tooltip="Pioneer: Complete your first project to unlock." style={{ textAlign: "center", padding: "1rem", borderRadius: "16px", background: stats.completed_projects >= 1 ? "#f0fdf4" : "var(--bg-secondary)", border: `1px solid ${stats.completed_projects >= 1 ? "#bbf7d0" : "var(--border-color)"}` }}>
                     <i className="fa-solid fa-trophy" style={{ fontSize: "1.5rem", color: stats.completed_projects >= 1 ? "#10b981" : "var(--text-secondary)", marginBottom: "8px" }}></i>
                     <span style={{ display: "block", fontSize: "0.75rem", fontWeight: "800", color: stats.completed_projects >= 1 ? "#166534" : "var(--text-secondary)" }}>PIONEER</span>
                   </div>
-                  <div style={{ textAlign: "center", padding: "1rem", borderRadius: "16px", background: stats.score >= 90 ? "#eff6ff" : "var(--bg-secondary)", border: `1px solid ${stats.score >= 90 ? "#bfdbfe" : "var(--border-color)"}` }}>
-                    <i className="fa-solid fa-shield-heart" style={{ fontSize: "1.5rem", color: stats.score >= 90 ? "#3b82f6" : "var(--text-secondary)", marginBottom: "8px" }}></i>
-                    <span style={{ display: "block", fontSize: "0.75rem", fontWeight: "800", color: stats.score >= 90 ? "#1e40af" : "var(--text-secondary)" }}>ELITE</span>
+                  <div className="badge-with-tooltip" data-tooltip="Elite: Maintain a 90+ Trust Score and complete at least 1 project." style={{ textAlign: "center", padding: "1rem", borderRadius: "16px", background: (stats.score >= 90 && stats.completed_projects >= 1) ? "#eff6ff" : "var(--bg-secondary)", border: `1px solid ${(stats.score >= 90 && stats.completed_projects >= 1) ? "#bfdbfe" : "var(--border-color)"}` }}>
+                    <i className="fa-solid fa-shield-heart" style={{ fontSize: "1.5rem", color: (stats.score >= 90 && stats.completed_projects >= 1) ? "#3b82f6" : "var(--text-secondary)", marginBottom: "8px" }}></i>
+                    <span style={{ display: "block", fontSize: "0.75rem", fontWeight: "800", color: (stats.score >= 90 && stats.completed_projects >= 1) ? "#1e40af" : "var(--text-secondary)" }}>ELITE</span>
                   </div>
-                  <div style={{ textAlign: "center", padding: "1rem", borderRadius: "16px", background: (stats.average_delay_days === 0 && stats.total_milestones > 0) ? "#fff7ed" : "var(--bg-secondary)", border: `1px solid ${(stats.average_delay_days === 0 && stats.total_milestones > 0) ? "#fed7aa" : "var(--border-color)"}` }}>
-                    <i className="fa-solid fa-bolt-lightning" style={{ fontSize: "1.5rem", color: (stats.average_delay_days === 0 && stats.total_milestones > 0) ? "#f59e0b" : "var(--text-secondary)", marginBottom: "8px" }}></i>
-                    <span style={{ display: "block", fontSize: "0.75rem", fontWeight: "800", color: (stats.average_delay_days === 0 && stats.total_milestones > 0) ? "#9a3412" : "var(--text-secondary)" }}>PUNCTUAL</span>
+                  <div className="badge-with-tooltip" data-tooltip="Punctual: Maintain an average delay of 0 days for all approved milestones." style={{ textAlign: "center", padding: "1rem", borderRadius: "16px", background: (stats.average_delay_days === 0 && stats.on_time_milestones >= 1) ? "#fff7ed" : "var(--bg-secondary)", border: `1px solid ${(stats.average_delay_days === 0 && stats.on_time_milestones >= 1) ? "#fed7aa" : "var(--border-color)"}` }}>
+                    <i className="fa-solid fa-bolt-lightning" style={{ fontSize: "1.5rem", color: (stats.average_delay_days === 0 && stats.on_time_milestones >= 1) ? "#f59e0b" : "var(--text-secondary)", marginBottom: "8px" }}></i>
+                    <span style={{ display: "block", fontSize: "0.75rem", fontWeight: "800", color: (stats.average_delay_days === 0 && stats.on_time_milestones >= 1) ? "#9a3412" : "var(--text-secondary)" }}>PUNCTUAL</span>
                   </div>
                 </div>
               </div>

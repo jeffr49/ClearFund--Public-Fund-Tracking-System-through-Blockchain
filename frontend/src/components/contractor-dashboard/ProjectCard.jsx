@@ -93,16 +93,20 @@ export default function ProjectCard({ project, apiBase }) {
       ) : null}
 
       <div className={styles.milestoneList}>
-        {(details?.milestones || []).map((milestone) => (
-          <MilestoneCard
-            key={milestone.id}
-            projectId={project.project_id}
-            milestone={milestone}
-            contractAddress={project.contract_address}
-            onSubmitted={fetchDetails}
-            apiBase={apiBase}
-          />
-        ))}
+        {(details?.milestones || []).map((milestone, idx) => {
+          const isNext = details.milestones.findIndex(ms => ms.status !== 'APPROVED') === idx;
+          return (
+            <MilestoneCard
+              key={milestone.id}
+              projectId={project.project_id}
+              milestone={milestone}
+              contractAddress={project.contract_address}
+              onSubmitted={fetchDetails}
+              apiBase={apiBase}
+              isNext={isNext}
+            />
+          );
+        })}
         {!loading && !error && details?.milestones?.length === 0 ? (
           <div className={styles.inlineState}>No milestones found for this project.</div>
         ) : null}

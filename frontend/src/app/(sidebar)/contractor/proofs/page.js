@@ -67,27 +67,44 @@ export default function SubmitProofsPage() {
   };
 
   const handleFileSelect = (index, e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setUploading(prev => ({ ...prev, [index]: { file, status: null, name: file.name } }));
+    const files = Array.from(e.target.files);
+    if (files.length > 0) {
+      setUploading(prev => {
+        const currentFiles = prev[index]?.files || [];
+        const combined = [...currentFiles, ...files];
+        return { 
+          ...prev, 
+          [index]: { 
+            files: combined, 
+            status: null, 
+            name: combined.length === 1 ? combined[0].name : `${combined.length} files selected` 
+          } 
+        };
+      });
     }
   };
 
   const submitProof = async (milestoneId, index) => {
     const uploadData = uploading[index];
-    if (!uploadData || !uploadData.file) {
-       setUploading(prev => ({ ...prev, [index]: { ...prev[index], status: "Capture or select a proof file." } }));
+    if (!uploadData || !uploadData.files || uploadData.files.length === 0) {
+       setUploading(prev => ({ ...prev, [index]: { ...prev[index], status: "Please upload a proof file." } }));
        return;
     }
 
     setUploading(prev => ({ ...prev, [index]: { ...prev[index], status: "Encrypting & Uploading to IPFS..." } }));
 
     try {
-      const formData = new FormData();
-      formData.append("file", uploadData.file);
-      const uploadRes = await fetch(`${API_BASE}/contractor/upload`, { method: "POST", body: formData });
-      if (!uploadRes.ok) throw new Error("Handshake with IPFS Node failed.");
-      const { ipfsHash } = await uploadRes.json();
+      const hashes = [];
+      for (const file of uploadData.files) {
+         const formData = new FormData();
+         formData.append("file", file);
+         const uploadRes = await fetch(`${API_BASE}/contractor/upload`, { method: "POST", body: formData });
+         if (!uploadRes.ok) throw new Error("Handshake with IPFS Node failed.");
+         const { ipfsHash } = await uploadRes.json();
+         hashes.push(ipfsHash);
+      }
+      
+      const ipfsHash = hashes.join(',');
 
       setUploading(prev => ({ ...prev, [index]: { ...prev[index], status: "Anchoring to Blockchain Registry..." } }));
 
@@ -225,21 +242,39 @@ export default function SubmitProofsPage() {
                                     <span style={{ display: "flex", alignItems: "center", gap: "6px" }}><i className="fa-regular fa-calendar-check"></i> Exp: {deadlineOk ? new Date(m.deadline).toLocaleDateString("en-IN") : "—"}</span>
                                 </div>
 
-                                {(m.status === 'NOT_SUBMITTED' || m.status === 'REJECTED') && (
-                                    <div className="proof-upload-zone" style={{ padding: "1.5rem", background: "var(--bg-secondary)", borderRadius: "12px", border: "1px dashed var(--border-color)" }}>
-                                        <input type="file" id={`file-${m.index}`} className="proof-file-input" onChange={(e) => handleFileSelect(m.index, e)} style={{ display: "none" }} />
-                                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                          <label htmlFor={`file-${m.index}`} className="file-label" style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "10px", fontWeight: "600" }}>
-                                              <i className="fa-solid fa-file-arrow-up" style={{ fontSize: "1.5rem", color: "var(--primary-color)" }}></i>
-                                              <span>{uploadInfo.name || "Upload Proof Image (PDF/JPG)"}</span>
-                                          </label>
-                                          <button className="submit-proof-btn" onClick={() => submitProof(m.index, m.index)} style={{ padding: "8px 20px", borderRadius: "8px", background: "var(--primary-color)", color: "white", border: "none", fontWeight: "700", cursor: "pointer" }}>
-                                              Anchor Submission
-                                          </button>
-                                        </div>
+                                {(m.status === 'NOT_SUBMITTED' || m.status === 'REJECTED') && isNext && (
+                                    <div className="proof-upload-zone" style={{ padding: "1.5rem", background: "var(--bg-secondary)", borderRadius: "12px", border: "1px dashed var(--border-color)", textAlign: "center" }}>
+                                        <input type="file" multiple id={`file-${m.index}`} className="proof-file-input" onChange={(e) => handleFileSelect(m.index, e)} style={{ display: "none" }} />
+                                        
+                                        {!uploadInfo.files || uploadInfo.files.length === 0 ? (
+                                           <div style={{ padding: "1.5rem 0" }}>
+                                             <i className="fa-solid fa-cloud-arrow-up" style={{ fontSize: "3rem", color: "var(--primary-color)", marginBottom: "1rem" }}></i>
+                                             <h4 style={{ marginBottom: "0.5rem", fontSize: "1.1rem" }}>Upload Proof (Image/Video)</h4>
+                                             <p style={{ color: "var(--text-secondary)", marginBottom: "1.5rem", fontSize: "0.9rem" }}>Select the file(s) that proves completion of this milestone</p>
+                                             <button onClick={() => document.getElementById(`file-${m.index}`).click()} style={{ padding: "10px 24px", borderRadius: "8px", background: "white", color: "var(--primary-color)", border: "2px solid var(--primary-color)", fontWeight: "700", cursor: "pointer", transition: "all 0.2s" }}>
+                                               Browse Files
+                                             </button>
+                                           </div>
+                                        ) : (
+                                           <div style={{ padding: "1.5rem", background: "white", borderRadius: "8px", border: "1px solid var(--border-color)" }}>
+                                             <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1.5rem" }}>
+                                               <i className="fa-solid fa-file-circle-check" style={{ fontSize: "2.5rem", color: "var(--primary-color)" }}></i>
+                                               <div style={{ flex: 1, textAlign: "left" }}>
+                                                 <h5 style={{ margin: "0 0 4px 0", fontSize: "1rem", wordBreak: "break-all" }}>{uploadInfo.name}</h5>
+                                                 <button onClick={() => setUploading(prev => { const updated = {...prev}; delete updated[m.index]; return updated; })} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: "0.85rem", cursor: "pointer", textDecoration: "underline", padding: 0 }}>Remove All</button>
+                                                 <span style={{ margin: "0 10px", color: "#ccc" }}>|</span>
+                                                 <button onClick={() => document.getElementById(`file-${m.index}`).click()} style={{ background: "none", border: "none", color: "var(--primary-color)", fontSize: "0.85rem", cursor: "pointer", textDecoration: "underline", padding: 0 }}>Add More</button>
+                                               </div>
+                                             </div>
+                                             <button className="submit-proof-btn" onClick={() => submitProof(m.index, m.index)} style={{ width: "100%", padding: "12px", borderRadius: "8px", background: "var(--primary-color)", color: "white", border: "none", fontWeight: "700", cursor: "pointer", fontSize: "1rem", transition: "all 0.2s" }}>
+                                               Submit & Anchor Proof
+                                             </button>
+                                           </div>
+                                        )}
+
                                         {uploadInfo.status && (
-                                            <div style={{ marginTop: "1rem", fontSize: "0.85rem", fontWeight: "700", color: uploadInfo.status.includes("Anchored") ? "#16a34a" : "#475569" }}>
-                                                <i className={`fa-solid ${uploadInfo.status.includes("Anchored") ? "fa-circle-check" : "fa-spinner fa-spin"}`} style={{ marginRight: "6px" }}></i>
+                                            <div style={{ marginTop: "1rem", fontSize: "0.9rem", fontWeight: "700", color: uploadInfo.status.includes("Successfully") ? "#16a34a" : (uploadInfo.status.includes("Please") || uploadInfo.status.includes("Failure") ? "#dc2626" : "#475569") }}>
+                                                <i className={`fa-solid ${uploadInfo.status.includes("Successfully") ? "fa-circle-check" : (uploadInfo.status.includes("Please") || uploadInfo.status.includes("Failure") ? "fa-circle-exclamation" : "fa-spinner fa-spin")}`} style={{ marginRight: "6px" }}></i>
                                                 {uploadInfo.status}
                                             </div>
                                         )}
