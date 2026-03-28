@@ -59,15 +59,34 @@ export default function MilestoneCard({
     }
   };
 
+  const label =
+    milestone.title?.trim() ||
+    milestone.description?.trim() ||
+    `Milestone ${milestone.index}`;
+  const deadlineLabel =
+    milestone.deadline &&
+    !Number.isNaN(new Date(milestone.deadline).getTime())
+      ? new Date(milestone.deadline).toLocaleDateString("en-IN")
+      : "—";
+
   return (
     <div className={styles.milestoneCard}>
       <div className={styles.milestoneRow}>
-        <h4>Milestone {milestone.index}</h4>
+        <h4>
+          #{milestone.index + 1} · {label}
+        </h4>
         <span className={styles.status}>{milestone.status}</span>
       </div>
-      <p>{milestone.description || "No milestone description."}</p>
-      <p>Amount: {milestone.amount}</p>
-      <p>Deadline: {new Date(milestone.deadline).toLocaleDateString()}</p>
+      {milestone.title && milestone.description ? (
+        <p className={styles.meta}>{milestone.description}</p>
+      ) : null}
+      <p>
+        Amount (INR):{" "}
+        {milestone.amount != null && milestone.amount !== ""
+          ? Number(milestone.amount).toLocaleString("en-IN")
+          : "—"}
+      </p>
+      <p>Deadline: {deadlineLabel}</p>
 
       {milestone.ipfsUrl ? (
         <a href={milestone.ipfsUrl} target="_blank" rel="noreferrer" className={styles.proofLink}>

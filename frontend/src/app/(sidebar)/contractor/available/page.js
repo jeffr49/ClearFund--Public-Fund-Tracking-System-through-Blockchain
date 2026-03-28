@@ -39,8 +39,13 @@ export default function AvailableProjectsPage() {
     }
     setActiveBidForm(p.id);
     
-    // Auto-populate milestone placeholders
-    const mData = (p.milestones || []).map(m => ({ description: m.description || m.title, amount: "", deadline: "" }));
+    const mData = (p.milestones || []).map((m) => ({
+      milestone_index: m.milestone_index,
+      title: m.title,
+      description: m.description,
+      amount: "",
+      deadline: ""
+    }));
     setBidPayload({ ...bidPayload, milestones: mData, total: "" });
     setSubmissionStatus({});
   };
@@ -65,9 +70,17 @@ export default function AvailableProjectsPage() {
        return;
     }
 
-    if (milestones.some(m => !m.amount || !m.deadline)) {
-        setSubmissionStatus({ error: "Please complete all milestone amounts and deadlines." });
-        return;
+    if (
+      milestones.length === 0 ||
+      milestones.some((m) => !m.amount || !m.deadline)
+    ) {
+      setSubmissionStatus({
+        error:
+          milestones.length === 0
+            ? "This tender has no milestones defined yet."
+            : "Please complete all milestone amounts and deadlines."
+      });
+      return;
     }
 
     try {
@@ -137,14 +150,21 @@ export default function AvailableProjectsPage() {
                         </div>
 
                         <div className="bid-milestones-section">
-                           <label>Milestone Breakdown</label>
+                           <label>Split your bid across authority milestones</label>
                            <div className="milestone-col-headers">
-                              <span>Description</span><span>Amount (INR)</span><span>Deadline</span>
+                              <span>Milestone</span><span>Amount (INR)</span><span>Deadline</span>
                            </div>
                            <div className="milestone-rows">
                               {(bidPayload.milestones || []).map((ms, idx) => (
-                                 <div key={idx} className="milestone-input-row" style={{ display: "grid", gridTemplateColumns: "1fr 150px 150px", gap: "10px", marginBottom: "8px" }}>
-                                    <input type="text" className="bid-input" value={ms.description} readOnly style={{ background: "#f8fafc" }} />
+                                 <div key={ms.milestone_index ?? idx} className="milestone-input-row" style={{ display: "grid", gridTemplateColumns: "1fr 150px 150px", gap: "10px", marginBottom: "8px", alignItems: "start" }}>
+                                    <div style={{ padding: "0.35rem 0", fontSize: "0.9rem", color: "var(--text-secondary, #475569)" }}>
+                                       <strong style={{ color: "var(--text-primary, #0f172a)", display: "block" }}>
+                                          {ms.title?.trim() || `Milestone ${(ms.milestone_index ?? idx) + 1}`}
+                                       </strong>
+                                       {ms.description?.trim() ? (
+                                          <span style={{ display: "block", marginTop: "0.25rem", fontSize: "0.82rem" }}>{ms.description}</span>
+                                       ) : null}
+                                    </div>
                                     <input type="number" className="bid-input" placeholder="Amount" value={ms.amount} onChange={(e) => handleMilestoneChange(idx, "amount", e.target.value)} />
                                     <input type="date" className="bid-input" value={ms.deadline} onChange={(e) => handleMilestoneChange(idx, "deadline", e.target.value)} />
                                  </div>

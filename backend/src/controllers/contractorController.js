@@ -60,6 +60,7 @@ function normalizeMilestone(row, milestoneEvents, approvalThreshold) {
   return {
     id: row.id,
     index: row.milestone_index,
+    title: row.title,
     description: row.description,
     amount: row.amount,
     deadline: row.deadline,
@@ -116,7 +117,7 @@ exports.getProjectDetails = async (req, res) => {
           .single(),
         supabase
           .from("milestones")
-          .select("id, milestone_index, description, amount, deadline")
+          .select("id, milestone_index, title, description, amount, deadline")
           .eq("project_id", projectId)
           .order("milestone_index", { ascending: true }),
         supabase

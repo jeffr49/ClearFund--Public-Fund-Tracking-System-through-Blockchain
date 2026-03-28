@@ -62,8 +62,21 @@ exports.deployProject = async (bid, projectId) => {
     // =========================
     // 4. PREPARE MILESTONES
     // =========================
-    const milestones = bid.milestone_data;
-    if (!Array.isArray(milestones) || milestones.length === 0) {
+    const raw = bid.milestone_data;
+    const milestones = Array.isArray(raw)
+      ? [...raw]
+          .map((m, i) => ({
+            ...m,
+            milestone_index:
+              m.milestone_index !== undefined && m.milestone_index !== null
+                ? Number(m.milestone_index)
+                : i
+          }))
+          .sort(
+            (a, b) => Number(a.milestone_index) - Number(b.milestone_index)
+          )
+      : [];
+    if (milestones.length === 0) {
       throw new Error("Bid milestones are missing");
     }
 
@@ -76,9 +89,13 @@ exports.deployProject = async (bid, projectId) => {
       return BigInt(Math.round(n));
     });
 
-    const deadlines = milestones.map((_, i) =>
-      Math.floor(Date.now() / 1000) + (i + 1) * 86400 // stagger deadlines
-    );
+    const deadlines = milestones.map((m) => {
+      const t = new Date(m.deadline).getTime();
+      if (Number.isNaN(t)) {
+        throw new Error(`Invalid milestone deadline: ${m.deadline}`);
+      }
+      return Math.floor(t / 1000);
+    });
 
     // =========================
     // 5. DEPLOY CONTRACT (non-payable; INR-only bookkeeping on-chain)

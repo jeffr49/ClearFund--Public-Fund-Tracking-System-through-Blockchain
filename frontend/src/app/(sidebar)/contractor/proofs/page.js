@@ -163,20 +163,30 @@ export default function SubmitProofsPage() {
                     {milestones.map((m, idx) => {
                         const isNext = milestones.findIndex(ms => ms.status !== 'APPROVED') === idx;
                         const uploadInfo = uploading[m.index] || {};
+                        const msLabel =
+                          m.title?.trim() ||
+                          m.description?.trim() ||
+                          `Milestone ${m.index + 1}`;
+                        const deadlineOk =
+                          m.deadline &&
+                          !Number.isNaN(new Date(m.deadline).getTime());
 
                         return (
                             <div key={m.index} className={`milestone-proof-card ${m.status.toLowerCase()} ${isNext ? 'active-milestone' : ''}`}>
                                 <div className="ms-header">
                                     <div className="ms-title-wrap">
-                                        <span className="ms-index">#{m.index}</span>
-                                        <h4 className="ms-title">{m.description}</h4>
+                                        <span className="ms-index">#{m.index + 1}</span>
+                                        <h4 className="ms-title">{msLabel}</h4>
                                         {isNext && <span className="current-badge"><i className="fa-solid fa-star"></i> CURRENT</span>}
                                     </div>
                                     <span className={`ms-status-tag ${m.status}`}>{m.status.replace('_', ' ')}</span>
                                 </div>
+                                {m.description?.trim() && m.title?.trim() ? (
+                                    <p style={{ margin: "0 0 0.5rem", fontSize: "0.85rem", color: "var(--text-secondary)" }}>{m.description}</p>
+                                ) : null}
                                 <div className="ms-details">
-                                    <span><i className="fa-solid fa-money-bill-wave"></i> {formatCurrency(m.amount)}</span>
-                                    <span><i className="fa-solid fa-calendar-day"></i> Deadline: {new Date(m.deadline).toLocaleDateString()}</span>
+                                    <span><i className="fa-solid fa-money-bill-wave"></i> {formatCurrency(Number(m.amount) || 0)}</span>
+                                    <span><i className="fa-solid fa-calendar-day"></i> Deadline: {deadlineOk ? new Date(m.deadline).toLocaleDateString("en-IN") : "—"}</span>
                                 </div>
 
                                 {(m.status === 'NOT_SUBMITTED' || m.status === 'REJECTED') && (

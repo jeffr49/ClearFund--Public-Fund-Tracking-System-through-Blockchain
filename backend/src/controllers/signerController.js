@@ -21,7 +21,7 @@ exports.getSignerTasks = async (req, res) => {
       .select(`
         *,
         projects ( title ),
-        milestones!events_milestone_id_fkey ( description )
+        milestones!events_milestone_id_fkey ( title, description )
       `)
       .in("project_id", projectIds)
       .eq("event_type", "PROOF_SUBMITTED");
@@ -48,7 +48,10 @@ exports.getSignerTasks = async (req, res) => {
         project_title: e.projects?.title || "Unknown",
         contract_address: e.contract_address,
         milestone_id: e.milestone_id,
-        description: e.milestones?.description || "No description",
+        description:
+          [e.milestones?.title, e.milestones?.description]
+            .filter(Boolean)
+            .join(" — ") || "No description",
         ipfsHash: e.metadata?.ipfsHash || null
       }));
 
