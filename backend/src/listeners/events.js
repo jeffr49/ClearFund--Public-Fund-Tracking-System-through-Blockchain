@@ -15,383 +15,397 @@ const RETRY_DELAY_MS = 300;
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function getEventLogDetails(eventPayload) {
-  const log = eventPayload?.log || eventPayload || {};
-  const txHash = log?.transactionHash || null;
-  const logIndex =
-    log?.index === undefined || log?.index === null
-      ? null
-      : String(log.index);
+    const log = eventPayload?.log || eventPayload || {};
+    const txHash = log?.transactionHash || null;
+    const logIndex =
+        log?.index === undefined || log?.index === null
+            ? null
+            : String(log.index);
 
-  return { txHash, logIndex };
+    return { txHash, logIndex };
 }
 
 function hasConcreteEventLog(eventPayload) {
-  const { txHash, logIndex } = getEventLogDetails(eventPayload);
-  return Boolean(txHash) && logIndex !== null;
+    const { txHash, logIndex } = getEventLogDetails(eventPayload);
+    return Boolean(txHash) && logIndex !== null;
 }
 
 function buildEventKey(contractAddress, eventLog) {
-  const { txHash, logIndex } = getEventLogDetails(eventLog);
-  if (!txHash || logIndex === null) {
-    return null;
-  }
-  return `${contractAddress.toLowerCase()}:${txHash}:${logIndex}`;
+    const { txHash, logIndex } = getEventLogDetails(eventLog);
+    if (!txHash || logIndex === null) {
+        return null;
+    }
+    return `${contractAddress.toLowerCase()}:${txHash}:${logIndex}`;
 }
 
 async function persistEvent(payload) {
-  const requiresConcreteLog = new Set([
-    "PROOF_SUBMITTED",
-    "MILESTONE_APPROVED",
-    "MILESTONE_REJECTED",
-    "FUNDS_RELEASED",
-    "DEADLINE_EXTENDED"
-  ]);
+    const requiresConcreteLog = new Set([
+        "PROOF_SUBMITTED",
+        "MILESTONE_APPROVED",
+        "MILESTONE_REJECTED",
+        "FUNDS_RELEASED",
+        "DEADLINE_EXTENDED"
+    ]);
 
-  if (requiresConcreteLog.has(payload?.event_type)) {
-    const txHash = payload?.metadata?.txHash || null;
-    const logIndex =
-      payload?.metadata?.logIndex === undefined || payload?.metadata?.logIndex === null
-        ? null
-        : String(payload.metadata.logIndex);
+    if (requiresConcreteLog.has(payload?.event_type)) {
+        const txHash = payload?.metadata?.txHash || null;
+        const logIndex =
+            payload?.metadata?.logIndex === undefined || payload?.metadata?.logIndex === null
+                ? null
+                : String(payload.metadata.logIndex);
 
-    if (!txHash || logIndex === null) {
-      throw new Error(
-        `Refusing to persist ${payload.event_type} without txHash/logIndex`
-      );
-    }
-  }
-
-  for (let attempt = 1; attempt <= INSERT_RETRIES; attempt++) {
-    const { error } = await supabase.from("events").insert([payload]);
-
-    if (!error) return;
-
-    if (attempt === INSERT_RETRIES) {
-      console.error("DB insert failed:", error);
-      throw error;
+        if (!txHash || logIndex === null) {
+            throw new Error(
+                `Refusing to persist ${payload.event_type} without txHash/logIndex`
+            );
+        }
     }
 
-    await sleep(RETRY_DELAY_MS * attempt);
-  }
+    for (let attempt = 1; attempt <= INSERT_RETRIES; attempt++) {
+        const { error } = await supabase.from("events").insert([payload]);
+
+        if (!error) return;
+
+        if (attempt === INSERT_RETRIES) {
+            console.error("DB insert failed:", error);
+            throw error;
+        }
+
+        await sleep(RETRY_DELAY_MS * attempt);
+    }
 }
 
 async function hasRecordedFundsRelease(projectId, milestoneId) {
-  const { data, error } = await supabase
-    .from("events")
-    .select("id")
-    .eq("project_id", projectId)
-    .eq("event_type", "FUNDS_RELEASED")
-    .eq("milestone_id", milestoneId)
-    .limit(1)
-    .maybeSingle();
+    const { data, error } = await supabase
+        .from("events")
+        .select("id")
+        .eq("project_id", projectId)
+        .eq("event_type", "FUNDS_RELEASED")
+        .eq("milestone_id", milestoneId)
+        .limit(1)
+        .maybeSingle();
 
-  if (error) {
-    throw error;
-  }
+    if (error) {
+        throw error;
+    }
 
-  return Boolean(data);
+    return Boolean(data);
 }
 
 async function hasRecordedEventLog(eventLog) {
-  const { txHash, logIndex } = getEventLogDetails(eventLog);
-  if (!txHash || logIndex === null) {
-    return false;
-  }
+    const { txHash, logIndex } = getEventLogDetails(eventLog);
+    if (!txHash || logIndex === null) {
+        return false;
+    }
 
-  const { data, error } = await supabase
-    .from("events")
-    .select("id")
-    .eq("metadata->>txHash", txHash)
-    .eq("metadata->>logIndex", logIndex)
-    .limit(1)
-    .maybeSingle();
+    const { data, error } = await supabase
+        .from("events")
+        .select("id")
+        .eq("metadata->>txHash", txHash)
+        .eq("metadata->>logIndex", logIndex)
+        .limit(1)
+        .maybeSingle();
 
-  if (error) {
-    throw error;
-  }
+    if (error) {
+        throw error;
+    }
 
-  return Boolean(data);
+    return Boolean(data);
 }
 
 exports.listenToProject = (projectId, contractAddress) => {
-  if (activeListeners.has(contractAddress)) return;
+    if (activeListeners.has(contractAddress)) return;
 
-  activeListeners.add(contractAddress);
+    activeListeners.add(contractAddress);
 
-  const contract = new ethers.Contract(
-    contractAddress,
-    escrowAbi.abi,
-    provider
-  );
+    const contract = new ethers.Contract(
+        contractAddress,
+        escrowAbi.abi,
+        provider
+    );
 
-  console.log("Listening to:", contractAddress);
+    console.log("Listening to:", contractAddress);
 
-  // =========================
-  // PROOF SUBMITTED
-  // =========================
-  contract.on("ProofSubmitted", async (milestoneId, ipfsHash, eventLog) => {
-    try {
-      if (!hasConcreteEventLog(eventLog)) {
-        console.warn("Skipping ProofSubmitted without concrete log details");
-        return;
-      }
-      const eventKey = buildEventKey(contractAddress, eventLog);
-      if (eventKey && seenEventKeys.has(eventKey)) return;
-      if (await hasRecordedEventLog(eventLog)) {
-        if (eventKey) seenEventKeys.add(eventKey);
-        return;
-      }
-      const { txHash, logIndex } = getEventLogDetails(eventLog);
+    const safeOn = (eventName, callback) => {
+        contract.on(eventName, async (...args) => {
+            try {
+                await callback(...args);
+            } catch (err) {
+                if (err.message && (err.message.includes("filter not found") || err.code === -32000)) {
+                    // Suppress noise from transient filter expirations
+                    return;
+                }
+                console.error(`Error in ${eventName} listener:`, err);
+            }
+        });
+    };
 
-      await persistEvent({
-        project_id: projectId,
-        contract_address: contractAddress,
-        event_type: "PROOF_SUBMITTED",
-        milestone_id: Number(milestoneId),
-        actor: "contractor",
-        metadata: {
-          ipfsHash: ipfsHash,
-          txHash,
-          logIndex
+    // =========================
+    // PROOF SUBMITTED
+    // =========================
+    safeOn("ProofSubmitted", async (milestoneId, ipfsHash, eventLog) => {
+        try {
+            if (!hasConcreteEventLog(eventLog)) {
+                console.warn("Skipping ProofSubmitted without concrete log details");
+                return;
+            }
+            const eventKey = buildEventKey(contractAddress, eventLog);
+            if (eventKey && seenEventKeys.has(eventKey)) return;
+            if (await hasRecordedEventLog(eventLog)) {
+                if (eventKey) seenEventKeys.add(eventKey);
+                return;
+            }
+            const { txHash, logIndex } = getEventLogDetails(eventLog);
+
+            await persistEvent({
+                project_id: projectId,
+                contract_address: contractAddress,
+                event_type: "PROOF_SUBMITTED",
+                milestone_id: Number(milestoneId),
+                actor: "contractor",
+                metadata: {
+                    ipfsHash: ipfsHash,
+                    txHash,
+                    logIndex
+                }
+            });
+
+            if (eventKey) seenEventKeys.add(eventKey);
+
+            const { error: milestoneStatusErr } = await supabase
+                .from("milestones")
+                .update({ status: "working" })
+                .eq("project_id", projectId)
+                .eq("milestone_index", Number(milestoneId));
+            if (milestoneStatusErr) {
+                console.error(
+                    "Error updating milestone to working after proof submission:",
+                    milestoneStatusErr
+                );
+            }
+
+        } catch (err) {
+            console.error("ProofSubmitted error:", err);
         }
-      });
+    });
 
-      if (eventKey) seenEventKeys.add(eventKey);
+    // =========================
+    // APPROVED
+    // =========================
+    safeOn("MilestoneApproved", async (milestoneId, approver, eventLog) => {
+        try {
+            if (!hasConcreteEventLog(eventLog)) {
+                console.warn("Skipping MilestoneApproved without concrete log details");
+                return;
+            }
+            const eventKey = buildEventKey(contractAddress, eventLog);
+            if (eventKey && seenEventKeys.has(eventKey)) return;
+            if (await hasRecordedEventLog(eventLog)) {
+                if (eventKey) seenEventKeys.add(eventKey);
+                return;
+            }
+            const numericMilestoneId = Number(milestoneId);
+            const { txHash, logIndex } = getEventLogDetails(eventLog);
 
-      const { error: milestoneStatusErr } = await supabase
-        .from("milestones")
-        .update({ status: "working" })
-        .eq("project_id", projectId)
-        .eq("milestone_index", Number(milestoneId));
-      if (milestoneStatusErr) {
-        console.error(
-          "Error updating milestone to working after proof submission:",
-          milestoneStatusErr
-        );
-      }
+            await persistEvent({
+                project_id: projectId,
+                contract_address: contractAddress,
+                event_type: "MILESTONE_APPROVED",
+                milestone_id: numericMilestoneId,
+                actor: approver,
+                metadata: {
+                    txHash,
+                    logIndex
+                }
+            });
 
-    } catch (err) {
-      console.error("ProofSubmitted error:", err);
-    }
-  });
+            if (eventKey) seenEventKeys.add(eventKey);
 
-  // =========================
-  // APPROVED
-  // =========================
-  contract.on("MilestoneApproved", async (milestoneId, approver, eventLog) => {
-    try {
-      if (!hasConcreteEventLog(eventLog)) {
-        console.warn("Skipping MilestoneApproved without concrete log details");
-        return;
-      }
-      const eventKey = buildEventKey(contractAddress, eventLog);
-      if (eventKey && seenEventKeys.has(eventKey)) return;
-      if (await hasRecordedEventLog(eventLog)) {
-        if (eventKey) seenEventKeys.add(eventKey);
-        return;
-      }
-      const numericMilestoneId = Number(milestoneId);
-      const { txHash, logIndex } = getEventLogDetails(eventLog);
-
-      await persistEvent({
-        project_id: projectId,
-        contract_address: contractAddress,
-        event_type: "MILESTONE_APPROVED",
-        milestone_id: numericMilestoneId,
-        actor: approver,
-        metadata: {
-          txHash,
-          logIndex
+        } catch (err) {
+            console.error("MilestoneApproved error:", err);
         }
-      });
+    });
 
-      if (eventKey) seenEventKeys.add(eventKey);
+    // =========================
+    // REJECTED
+    // =========================
+    safeOn("MilestoneRejected", async (milestoneId, approver, eventLog) => {
+        try {
+            if (!hasConcreteEventLog(eventLog)) {
+                console.warn("Skipping MilestoneRejected without concrete log details");
+                return;
+            }
+            const eventKey = buildEventKey(contractAddress, eventLog);
+            if (eventKey && seenEventKeys.has(eventKey)) return;
+            if (await hasRecordedEventLog(eventLog)) {
+                if (eventKey) seenEventKeys.add(eventKey);
+                return;
+            }
+            const numericMilestoneId = Number(milestoneId);
+            const { txHash, logIndex } = getEventLogDetails(eventLog);
 
-    } catch (err) {
-      console.error("MilestoneApproved error:", err);
-    }
-  });
+            await persistEvent({
+                project_id: projectId,
+                contract_address: contractAddress,
+                event_type: "MILESTONE_REJECTED",
+                milestone_id: numericMilestoneId,
+                actor: approver,
+                metadata: {
+                    txHash,
+                    logIndex
+                }
+            });
 
-  // =========================
-  // REJECTED
-  // =========================
-  contract.on("MilestoneRejected", async (milestoneId, approver, eventLog) => {
-    try {
-      if (!hasConcreteEventLog(eventLog)) {
-        console.warn("Skipping MilestoneRejected without concrete log details");
-        return;
-      }
-      const eventKey = buildEventKey(contractAddress, eventLog);
-      if (eventKey && seenEventKeys.has(eventKey)) return;
-      if (await hasRecordedEventLog(eventLog)) {
-        if (eventKey) seenEventKeys.add(eventKey);
-        return;
-      }
-      const numericMilestoneId = Number(milestoneId);
-      const { txHash, logIndex } = getEventLogDetails(eventLog);
+            if (eventKey) seenEventKeys.add(eventKey);
 
-      await persistEvent({
-        project_id: projectId,
-        contract_address: contractAddress,
-        event_type: "MILESTONE_REJECTED",
-        milestone_id: numericMilestoneId,
-        actor: approver,
-        metadata: {
-          txHash,
-          logIndex
+        } catch (err) {
+            console.error("MilestoneRejected error:", err);
         }
-      });
+    });
 
-      if (eventKey) seenEventKeys.add(eventKey);
+    // =========================
+    // FUNDS RELEASED
+    // =========================
+    safeOn("FundsReleased", async (milestoneId, amount, eventLog) => {
+        try {
+            if (!hasConcreteEventLog(eventLog)) {
+                console.warn("Skipping FundsReleased without concrete log details");
+                return;
+            }
+            const eventKey = buildEventKey(contractAddress, eventLog);
+            if (eventKey && seenEventKeys.has(eventKey)) return;
+            if (await hasRecordedEventLog(eventLog)) {
+                if (eventKey) seenEventKeys.add(eventKey);
+                return;
+            }
 
-    } catch (err) {
-      console.error("MilestoneRejected error:", err);
-    }
-  });
+            const numericMilestoneId = Number(milestoneId);
+            const alreadyRecorded = await hasRecordedFundsRelease(
+                projectId,
+                numericMilestoneId
+            );
+            if (alreadyRecorded) {
+                if (eventKey) seenEventKeys.add(eventKey);
+                return;
+            }
+            const { txHash, logIndex } = getEventLogDetails(eventLog);
 
-  // =========================
-  // FUNDS RELEASED
-  // =========================
-  contract.on("FundsReleased", async (milestoneId, amount, eventLog) => {
-    try {
-      if (!hasConcreteEventLog(eventLog)) {
-        console.warn("Skipping FundsReleased without concrete log details");
-        return;
-      }
-      const eventKey = buildEventKey(contractAddress, eventLog);
-      if (eventKey && seenEventKeys.has(eventKey)) return;
-      if (await hasRecordedEventLog(eventLog)) {
-        if (eventKey) seenEventKeys.add(eventKey);
-        return;
-      }
+            await persistEvent({
+                project_id: projectId,
+                contract_address: contractAddress,
+                event_type: "FUNDS_RELEASED",
+                milestone_id: numericMilestoneId,
+                actor: "system",
+                metadata: {
+                    amount: amount.toString(),
+                    txHash,
+                    logIndex
+                }
+            });
 
-      const numericMilestoneId = Number(milestoneId);
-      const alreadyRecorded = await hasRecordedFundsRelease(
-        projectId,
-        numericMilestoneId
-      );
-      if (alreadyRecorded) {
-        if (eventKey) seenEventKeys.add(eventKey);
-        return;
-      }
-      const { txHash, logIndex } = getEventLogDetails(eventLog);
+            if (eventKey) seenEventKeys.add(eventKey);
 
-      await persistEvent({
-        project_id: projectId,
-        contract_address: contractAddress,
-        event_type: "FUNDS_RELEASED",
-        milestone_id: numericMilestoneId,
-        actor: "system",
-        metadata: {
-          amount: amount.toString(),
-          txHash,
-          logIndex
+            const numId = numericMilestoneId;
+            const { error: updErr1 } = await supabase
+                .from("milestones")
+                .update({ status: 'completed' })
+                .eq("project_id", projectId)
+                .eq("milestone_index", numId);
+            if (updErr1) console.error("Error updating milestone to completed:", updErr1);
+
+            const { error: updErr2 } = await supabase
+                .from("milestones")
+                .update({ status: 'working' })
+                .eq("project_id", projectId)
+                .eq("milestone_index", numId + 1);
+            if (updErr2) console.error("Error updating next milestone to working:", updErr2);
+
+            const { data: remainingMilestone, error: remainingErr } = await supabase
+                .from("milestones")
+                .select("id")
+                .eq("project_id", projectId)
+                .eq("milestone_index", numId + 1)
+                .maybeSingle();
+            if (remainingErr) {
+                console.error("Error checking next milestone existence:", remainingErr);
+            } else if (!remainingMilestone) {
+                const { error: projectDoneErr } = await supabase
+                    .from("projects")
+                    .update({ status: "completed" })
+                    .eq("id", projectId);
+                if (projectDoneErr) console.error("Error updating project to completed:", projectDoneErr);
+            }
+
+        } catch (err) {
+            console.error("FundsReleased error:", err);
         }
-      });
+    });
 
-      if (eventKey) seenEventKeys.add(eventKey);
+    // =========================
+    // DEADLINE EXTENDED
+    // =========================
+    safeOn("DeadlineExtended", async (milestoneId, newDeadline, eventLog) => {
+        try {
+            if (!hasConcreteEventLog(eventLog)) {
+                console.warn("Skipping DeadlineExtended without concrete log details");
+                return;
+            }
+            const eventKey = buildEventKey(contractAddress, eventLog);
+            if (eventKey && seenEventKeys.has(eventKey)) return;
+            if (await hasRecordedEventLog(eventLog)) {
+                if (eventKey) seenEventKeys.add(eventKey);
+                return;
+            }
+            const { txHash, logIndex } = getEventLogDetails(eventLog);
 
-      const numId = numericMilestoneId;
-      const { error: updErr1 } = await supabase
-        .from("milestones")
-        .update({ status: 'completed' })
-        .eq("project_id", projectId)
-        .eq("milestone_index", numId);
-      if (updErr1) console.error("Error updating milestone to completed:", updErr1);
+            await persistEvent({
+                project_id: projectId,
+                contract_address: contractAddress,
+                event_type: "DEADLINE_EXTENDED",
+                milestone_id: Number(milestoneId),
+                actor: "approver",
+                metadata: {
+                    newDeadline: Number(newDeadline),
+                    txHash,
+                    logIndex
+                }
+            });
 
-      const { error: updErr2 } = await supabase
-        .from("milestones")
-        .update({ status: 'working' })
-        .eq("project_id", projectId)
-        .eq("milestone_index", numId + 1);
-      if (updErr2) console.error("Error updating next milestone to working:", updErr2);
+            if (eventKey) seenEventKeys.add(eventKey);
 
-      const { data: remainingMilestone, error: remainingErr } = await supabase
-        .from("milestones")
-        .select("id")
-        .eq("project_id", projectId)
-        .eq("milestone_index", numId + 1)
-        .maybeSingle();
-      if (remainingErr) {
-        console.error("Error checking next milestone existence:", remainingErr);
-      } else if (!remainingMilestone) {
-        const { error: projectDoneErr } = await supabase
-          .from("projects")
-          .update({ status: "completed" })
-          .eq("id", projectId);
-        if (projectDoneErr) console.error("Error updating project to completed:", projectDoneErr);
-      }
+            const newD = new Date(Number(newDeadline) * 1000).toISOString();
 
-    } catch (err) {
-      console.error("FundsReleased error:", err);
-    }
-  });
+            // Update milestone status to 'extended' and set the new deadline
+            const { error: updErr3 } = await supabase
+                .from("milestones")
+                .update({ status: 'extended', deadline: newD })
+                .eq("project_id", projectId)
+                .eq("milestone_index", Number(milestoneId));
+            if (updErr3) console.error("Error extending deadline on milestone:", updErr3);
 
-  // =========================
-  // DEADLINE EXTENDED
-  // =========================
-  contract.on("DeadlineExtended", async (milestoneId, newDeadline, eventLog) => {
-    try {
-      if (!hasConcreteEventLog(eventLog)) {
-        console.warn("Skipping DeadlineExtended without concrete log details");
-        return;
-      }
-      const eventKey = buildEventKey(contractAddress, eventLog);
-      if (eventKey && seenEventKeys.has(eventKey)) return;
-      if (await hasRecordedEventLog(eventLog)) {
-        if (eventKey) seenEventKeys.add(eventKey);
-        return;
-      }
-      const { txHash, logIndex } = getEventLogDetails(eventLog);
+            // Recalculate and update the overall project deadline
+            const { data: mData, error: mErr } = await supabase
+                .from("milestones")
+                .select("deadline")
+                .eq("project_id", projectId);
 
-      await persistEvent({
-        project_id: projectId,
-        contract_address: contractAddress,
-        event_type: "DEADLINE_EXTENDED",
-        milestone_id: Number(milestoneId),
-        actor: "approver",
-        metadata: {
-          newDeadline: Number(newDeadline),
-          txHash,
-          logIndex
+            if (!mErr && mData && mData.length > 0) {
+                // Find the maximum deadline across all milestones
+                const maxDeadline = mData.reduce((max, m) => {
+                    const d = new Date(m.deadline);
+                    return d > max ? d : max;
+                }, new Date(0));
+
+                const { error: pErr } = await supabase
+                    .from("projects")
+                    .update({ deadline: maxDeadline.toISOString() })
+                    .eq("id", projectId);
+
+                if (pErr) console.error("Error updating project deadline:", pErr);
+            }
+
+        } catch (err) {
+            console.error("DeadlineExtended error:", err);
         }
-      });
-
-      if (eventKey) seenEventKeys.add(eventKey);
-
-      const newD = new Date(Number(newDeadline) * 1000).toISOString();
-      
-      // Update milestone status to 'extended' and set the new deadline
-      const { error: updErr3 } = await supabase
-        .from("milestones")
-        .update({ status: 'extended', deadline: newD })
-        .eq("project_id", projectId)
-        .eq("milestone_index", Number(milestoneId));
-      if (updErr3) console.error("Error extending deadline on milestone:", updErr3);
-
-      // Recalculate and update the overall project deadline
-      const { data: mData, error: mErr } = await supabase
-        .from("milestones")
-        .select("deadline")
-        .eq("project_id", projectId);
-        
-      if (!mErr && mData && mData.length > 0) {
-          // Find the maximum deadline across all milestones
-          const maxDeadline = mData.reduce((max, m) => {
-              const d = new Date(m.deadline);
-              return d > max ? d : max;
-          }, new Date(0));
-          
-          const { error: pErr } = await supabase
-            .from("projects")
-            .update({ deadline: maxDeadline.toISOString() })
-            .eq("id", projectId);
-            
-          if (pErr) console.error("Error updating project deadline:", pErr);
-      }
-
-    } catch (err) {
-      console.error("DeadlineExtended error:", err);
-    }
-  });
+    });
 };

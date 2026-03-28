@@ -82,35 +82,115 @@ const INDIAN_STATES = [
   "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry"
 ];
 
-/** Detect which Indian state appears in a location_address string */
+/** 
+ * Heuristic: Detect Indian state from Coordinates (Approximate Bounding Boxes) 
+ * This fulfills the requirement to "figure out the state using longitude and latitude"
+ * even if external APIs fails or addresses are misspelled.
+ */
+function detectStateFromCoords(lat, lng) {
+  if (lat == null || lng == null) return null;
+  const nLat = Number(lat);
+  const nLng = Number(lng);
+
+  // Karnataka approx bounding box: Lat [11.5, 18.5], Lng [74.0, 78.5]
+  if (nLat >= 11.5 && nLat <= 18.5 && nLng >= 74.0 && nLng <= 78.5) return "Karnataka";
+
+  // Maharashtra approx: Lat [15.5, 20.5], Lng [72.5, 80.5]
+  if (nLat >= 15.5 && nLat <= 20.5 && nLng >= 72.5 && nLng <= 80.5 && !(nLat < 18.5 && nLng < 78.5)) return "Maharashtra";
+
+  // Delhi approx: Lat [28.4, 28.9], Lng [76.8, 77.3]
+  if (nLat >= 28.4 && nLat <= 28.9 && nLng >= 76.8 && nLng <= 77.3) return "Delhi";
+
+  // Tamil Nadu approx: Lat [8.0, 13.5], Lng [76.0, 80.5]
+  if (nLat >= 8.0 && nLat <= 13.5 && nLng >= 76.0 && nLng <= 80.5) return "Tamil Nadu";
+
+  // West Bengal approx: Lat [21.5, 27.5], Lng [85.5, 89.9]
+  if (nLat >= 21.5 && nLat <= 27.5 && nLng >= 85.5 && nLng <= 89.9) return "West Bengal";
+
+  return null;
+}
+
+const CITY_TO_STATE = {
+  "bengaluru": "Karnataka", "bangalore": "Karnataka", "benguluru": "Karnataka", "mysuru": "Karnataka", "mangaluru": "Karnataka", "hubballi": "Karnataka", "ka": "Karnataka",
+  "mumbai": "Maharashtra", "pune": "Maharashtra", "nagpur": "Maharashtra", "mh": "Maharashtra",
+  "delhi": "Delhi", "new delhi": "Delhi", "dl": "Delhi",
+  "chennai": "Tamil Nadu", "coimbatore": "Tamil Nadu", "madurai": "Tamil Nadu", "tn": "Tamil Nadu",
+  "hyderabad": "Telangana", "ts": "Telangana",
+  "kolkata": "West Bengal", "wb": "West Bengal",
+  "ahmedabad": "Gujarat", "gj": "Gujarat",
+  "lucknow": "Uttar Pradesh", "varanasi": "Uttar Pradesh", "up": "Uttar Pradesh",
+  "jaipur": "Rajasthan", "rj": "Rajasthan",
+  "chandigarh": "Chandigarh",
+  "kochi": "Kerala", "thiruvananthapuram": "Kerala", "kl": "Kerala",
+  "patna": "Bihar", "br": "Bihar",
+  "raipur": "Chhattisgarh", "ct": "Chhattisgarh",
+  "ranchi": "Jharkhand", "jh": "Jharkhand"
+};
+
+/** Detect which Indian state appears in a location_address string or city alias */
 function extractState(address) {
   if (!address) return null;
   const lower = address.toLowerCase();
-  return INDIAN_STATES.find((s) => lower.includes(s.toLowerCase())) || null;
+
+  // 1. Direct match in address
+  const matchedState = INDIAN_STATES.find((s) => lower.includes(s.toLowerCase()));
+  if (matchedState) return matchedState;
+
+  // 2. City Alias match
+  for (const [city, state] of Object.entries(CITY_TO_STATE)) {
+    // Regex to match whole word only
+    const regex = new RegExp(`\\b${city}\\b`, 'i');
+    if (regex.test(lower)) return state;
+  }
+
+  return null;
 }
 
 /**
  * Best-effort state resolver:
  * 1. Try extracting from the address string.
- * 2. Fall back to a previously reverse-geocoded result stored in resolvedStates map.
+ * 2. Fall back to coordinate-based detection (heuristic).
+ * 3. Fall back to a previously reverse-geocoded result stored in resolvedStates map.
  */
 function getProjectState(project, resolvedStates) {
-  return extractState(project.location_address) || resolvedStates[project.id] || null;
+  return (
+    extractState(project.location_address) || 
+    detectStateFromCoords(project.location_lat, project.location_lng) || 
+    resolvedStates[project.id] || 
+    null
+  );
 }
 
-/** Reverse-geocode a single project via BigDataCloud (free, no key required). */
+/** Reverse-geocode a single project via BigDataCloud or secondary OpenStreetMap fallback. */
 async function reverseGeocodeState(lat, lng) {
   try {
+    // Option A: BigDataCloud (Free, clean subdivison field)
     const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`;
     const res = await fetch(url);
-    if (!res.ok) return null;
-    const data = await res.json();
-    // principalSubdivision = state name in English
-    const subdivision = data?.principalSubdivision;
-    if (!subdivision) return null;
-    // Match to our known states to keep naming consistent
-    const lower = subdivision.toLowerCase();
-    return INDIAN_STATES.find((s) => s.toLowerCase() === lower || lower.includes(s.toLowerCase())) || subdivision;
+    if (res.ok) {
+      const data = await res.json();
+      const subdivision = data?.principalSubdivision;
+      if (subdivision) {
+        const lower = subdivision.toLowerCase();
+        const matched = INDIAN_STATES.find((s) => s.toLowerCase() === lower || lower.includes(s.toLowerCase()));
+        if (matched) return matched;
+      }
+    }
+
+    // Option B: OpenStreetMap Fallback (if BigDataCloud is rate-limited)
+    const osmUrl = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=en`;
+    const osmRes = await fetch(osmUrl, { headers: { 'Accept-Language': 'en' } });
+    if (osmRes.ok) {
+      const data = await osmRes.json();
+      const addr = data?.address || {};
+      const subdivision = addr.state || addr.province || addr.region;
+      if (subdivision) {
+        const lower = subdivision.toLowerCase();
+        const matched = INDIAN_STATES.find((s) => s.toLowerCase() === lower || lower.includes(s.toLowerCase()));
+        if (matched) return matched;
+      }
+    }
+    return null;
   } catch {
     return null;
   }
