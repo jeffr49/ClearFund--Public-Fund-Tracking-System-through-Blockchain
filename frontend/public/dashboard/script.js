@@ -1198,11 +1198,33 @@ const loadMyBids = async () => {
     }
 };
 
+/**
+ * Profile Dropdown Logic
+ */
+const initProfileDropdown = () => {
+    const profileBtn = document.getElementById('profileBtn');
+    const dropdownMenu = document.getElementById('dropdownMenu');
+
+    if (!profileBtn || !dropdownMenu) return;
+
+    profileBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        dropdownMenu.classList.toggle('show');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!profileBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
+            dropdownMenu.classList.remove('show');
+        }
+    });
+};
+
 // Init
 document.addEventListener('DOMContentLoaded', () => {
     // Capture the initial structure of the home view
     homeTemplate = document.querySelector('.container').innerHTML;
 
+    initProfileDropdown();
     initSidebar();
     initMap();
     initLocationAutocomplete();
