@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import SidebarLayout from "@/components/sidebar-layout/SidebarLayout";
+import ProjectListCard from "@/components/project-cards/ProjectListCard";
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
 
@@ -83,103 +84,69 @@ export default function AssignedProjectsPage() {
         ) : (
           <div className="avail-list" style={{ display: "grid", gap: "2rem" }}>
             {projects.map(p => (
-              <div key={p.id} className="avail-card" style={{
-                background: "var(--card-bg)",
-                borderRadius: "20px",
-                border: "1px solid var(--border-color)",
-                overflow: "hidden",
-                boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.05)",
-                transition: "all 0.3s ease"
-              }}>
-                <div className="avail-card-header" style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  padding: "2rem"
-                }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem" }}>
-                      <span className="avail-bid-badge" style={{
-                        background: p.status === "completed" ? "#ecfdf5" : "#eff6ff",
-                        color: p.status === "completed" ? "#10b981" : "#3b82f6",
-                        padding: "4px 12px",
-                        borderRadius: "999px",
-                        fontSize: "0.75rem",
-                        fontWeight: "700",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "4px",
-                        textTransform: "uppercase"
-                      }}>
-                        <i className={`fa-solid ${p.status === "completed" ? "fa-check-circle" : "fa-shield-halved"}`}></i>
-                        {p.status || "UNKNOWN"}
-                      </span>
-                      <span style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>{p.id}</span>
-                    </div>
-                    <h3 className="avail-title" style={{ fontSize: "1.5rem", fontWeight: "700", color: "var(--text-primary)", marginBottom: "0.5rem" }}>{p.title}</h3>
-                    <div className="avail-meta" style={{ display: "flex", gap: "1.5rem", color: "var(--text-secondary)", fontSize: "0.875rem" }}>
-                      <span><i className="fa-solid fa-location-dot" style={{ marginRight: "6px" }}></i> {p.location_address || p.location}</span>
-                    </div>
-                    <p className="avail-desc" style={{ marginTop: "1.25rem", color: "var(--text-secondary)", lineHeight: "1.6" }}>
-                      {p.description || "No description provided for this project."}
-                    </p>
-                  </div>
-                  <div className="avail-budget-box" style={{
-                    textAlign: "right",
-                    background: "var(--bg-secondary)",
-                    padding: "1.25rem",
-                    borderRadius: "16px",
-                    border: "1px solid var(--border-color)"
-                  }}>
-                    <span style={{ display: "block", fontSize: "0.75rem", textTransform: "uppercase", fontWeight: "800", color: "var(--text-secondary)", marginBottom: "4px" }}>Max Budget</span>
-                    <strong style={{ fontSize: "1.5rem", color: "var(--primary-color)" }}>{formatInr(getMaxBudget(p))}</strong>
-                  </div>
-                </div>
-
+              <ProjectListCard
+                key={p.id}
+                projectId={p.id}
+                title={p.title}
+                badge={{
+                  label: p.status || "UNKNOWN",
+                  icon: p.status === "completed" ? "fa-check-circle" : "fa-shield-halved",
+                  background: p.status === "completed" ? "#ecfdf5" : "#eff6ff",
+                  color: p.status === "completed" ? "#10b981" : "#3b82f6"
+                }}
+                meta={[
+                  {
+                    icon: "fa-location-dot",
+                    label: p.location_address || p.location
+                  }
+                ]}
+                description={p.description || "No description provided for this project."}
+                budgetValue={formatInr(getMaxBudget(p))}
+              >
                 {p.milestones && p.milestones.length > 0 && (
-                  <div style={{ padding: "0 2rem 2rem" }}>
+                  <>
                     <h4 style={{ fontSize: "1.1rem", fontWeight: "700", marginBottom: "1rem", color: "var(--text-secondary)" }}>Milestones</h4>
                     <div style={{ display: "grid", gap: "1rem" }}>
                       {[...p.milestones]
                         .sort((a, b) => Number(a.milestone_index ?? 0) - Number(b.milestone_index ?? 0))
                         .map((ms, idx) => (
-                        <div key={idx} style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          padding: "1rem",
-                          background: "var(--bg-secondary)",
-                          borderRadius: "12px",
-                          border: "1px solid var(--border-color)"
-                        }}>
-                          <div>
-                            <strong style={{ display: "block", color: "var(--text-primary)", marginBottom: "4px" }}>
-                              {ms.title || `Milestone ${(ms.milestone_index ?? idx) + 1}`}
-                            </strong>
-                            <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-                              {ms.description || "No details provided."}
-                            </span>
+                          <div key={idx} style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            padding: "1rem",
+                            background: "var(--bg-secondary)",
+                            borderRadius: "12px",
+                            border: "1px solid var(--border-color)"
+                          }}>
+                            <div>
+                              <strong style={{ display: "block", color: "var(--text-primary)", marginBottom: "4px" }}>
+                                {ms.title || `Milestone ${(ms.milestone_index ?? idx) + 1}`}
+                              </strong>
+                              <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+                                {ms.description || "No details provided."}
+                              </span>
+                            </div>
+                            <div style={{ textAlign: "right" }}>
+                              <span style={{ 
+                                display: "inline-block", 
+                                padding: "4px 8px", 
+                                borderRadius: "6px", 
+                                fontSize: "0.8rem", 
+                                fontWeight: "700",
+                                background: ms.status === "completed" ? "#dcfce7" : ms.status === "working" ? "#e0e7ff" : "#f3f4f6",
+                                color: ms.status === "completed" ? "#166534" : ms.status === "working" ? "#3730a3" : "#4b5563",
+                                textTransform: "uppercase"
+                              }}>
+                                {ms.status || "PENDING"}
+                              </span>
+                            </div>
                           </div>
-                          <div style={{ textAlign: "right" }}>
-                            <span style={{ 
-                              display: "inline-block", 
-                              padding: "4px 8px", 
-                              borderRadius: "6px", 
-                              fontSize: "0.8rem", 
-                              fontWeight: "700",
-                              background: ms.status === "completed" ? "#dcfce7" : ms.status === "working" ? "#e0e7ff" : "#f3f4f6",
-                              color: ms.status === "completed" ? "#166534" : ms.status === "working" ? "#3730a3" : "#4b5563",
-                              textTransform: "uppercase"
-                            }}>
-                              {ms.status || "PENDING"}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
+                        ))}
                     </div>
-                  </div>
+                  </>
                 )}
-              </div>
+              </ProjectListCard>
             ))}
           </div>
         )}

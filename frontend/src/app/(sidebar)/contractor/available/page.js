@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import SidebarLayout from "@/components/sidebar-layout/SidebarLayout";
+import ProjectListCard from "@/components/project-cards/ProjectListCard";
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
 
@@ -208,57 +209,30 @@ export default function AvailableProjectsPage() {
               const alreadyBid = biddedProjectIds.has(p.id);
 
               return (
-              <div key={p.id} className="avail-card" style={{
-                background: "var(--card-bg)",
-                borderRadius: "20px",
-                border: "1px solid var(--border-color)",
-                overflow: "hidden",
-                boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.05)",
-                transition: "all 0.3s ease"
-              }}>
-                <div className="avail-card-header" style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  padding: "2rem",
-                  borderBottom: activeBidForm === p.id ? "1px solid var(--border-color)" : "none"
-                }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem" }}>
-                      <span className="avail-bid-badge" style={{
-                        background: "#ecfdf5",
-                        color: "#10b981",
-                        padding: "4px 12px",
-                        borderRadius: "999px",
-                        fontSize: "0.75rem",
-                        fontWeight: "700",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "4px"
-                      }}>
-                        <i className="fa-solid fa-gavel"></i> ACTIVE RFP
-                      </span>
-                    </div>
-                    <h3 className="avail-title" style={{ fontSize: "1.5rem", fontWeight: "700", color: "var(--text-primary)", marginBottom: "0.5rem" }}>{p.title}</h3>
-                    <div className="avail-meta" style={{ display: "flex", gap: "1.5rem", color: "var(--text-secondary)", fontSize: "0.875rem" }}>
-                      <span><i className="fa-solid fa-location-dot" style={{ marginRight: "6px" }}></i> {p.location_address || p.location}</span>
-                      <span><i className="fa-solid fa-building-columns" style={{ marginRight: "6px" }}></i> {p.department || "Ministry of Works"}</span>
-                    </div>
-                    <p className="avail-desc" style={{ marginTop: "1.25rem", color: "var(--text-secondary)", lineHeight: "1.6" }}>{p.description}</p>
-                  </div>
-                  <div className="avail-budget-box" style={{
-                    textAlign: "right",
-                    background: "var(--bg-secondary)",
-                    padding: "1.25rem",
-                    borderRadius: "16px",
-                    border: "1px solid var(--border-color)"
-                  }}>
-                    <span style={{ display: "block", fontSize: "0.75rem", textTransform: "uppercase", fontWeight: "800", color: "var(--text-secondary)", marginBottom: "4px" }}>Max Budget</span>
-                    <strong style={{ fontSize: "1.5rem", color: "var(--primary-color)" }}>{formatInr(p.maximum_bid_amount || p.budget)}</strong>
-                  </div>
-                </div>
-
-                <div style={{ padding: "0 2rem 2rem" }}>
+              <ProjectListCard
+                key={p.id}
+                projectId={p.id}
+                title={p.title}
+                badge={{
+                  label: "ACTIVE RFP",
+                  icon: "fa-gavel",
+                  background: "#ecfdf5",
+                  color: "#10b981"
+                }}
+                meta={[
+                  {
+                    icon: "fa-location-dot",
+                    label: p.location_address || p.location
+                  },
+                  {
+                    icon: "fa-building-columns",
+                    label: p.department || "Ministry of Works"
+                  }
+                ]}
+                description={p.description}
+                budgetValue={formatInr(p.maximum_bid_amount || p.budget)}
+                headerDivider={activeBidForm === p.id}
+              >
                   {alreadyBid ? (
                     /* ── Already-bid state ─────────────────────── */
                     <div style={{
@@ -423,8 +397,7 @@ export default function AvailableProjectsPage() {
                   )}
                     </>
                   )}
-                </div>
-              </div>
+              </ProjectListCard>
               );
             })}
           </div>
