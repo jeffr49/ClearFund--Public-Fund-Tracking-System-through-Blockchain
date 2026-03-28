@@ -74,6 +74,17 @@ export default function MetaMaskConnect({ onVerified, onAccountChange } = {}) {
       return;
     }
     try {
+      // Ensure we are on Sepolia (0xaa36a7)
+      const SEPOLIA_CHAIN_ID = '0xaa36a7';
+      const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+      if (currentChainId !== SEPOLIA_CHAIN_ID) {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: SEPOLIA_CHAIN_ID }],
+        });
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
       const provider = new ethers.BrowserProvider(window.ethereum);
       await provider.send("eth_requestAccounts", []);
       const signer = await provider.getSigner();

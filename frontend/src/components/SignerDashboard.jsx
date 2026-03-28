@@ -18,8 +18,19 @@ export default function SignerDashboard({ walletAddress }) {
   };
 
   const handleAction = async (task, action) => {
-    await window.ethereum.request({ method: "eth_requestAccounts" });
+    if (!window.ethereum) return;
     try {
+      const SEPOLIA_CHAIN_ID = '0xaa36a7';
+      const cId = await window.ethereum.request({ method: 'eth_chainId' });
+      if (cId !== SEPOLIA_CHAIN_ID) {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: SEPOLIA_CHAIN_ID }],
+        });
+        await new Promise(res => setTimeout(res, 1000));
+      }
+
+      await window.ethereum.request({ method: "eth_requestAccounts" });
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
 

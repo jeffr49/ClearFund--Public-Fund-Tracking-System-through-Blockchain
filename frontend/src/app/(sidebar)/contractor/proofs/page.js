@@ -117,6 +117,26 @@ export default function ExecutionPage() {
         throw new Error("Project contract address is missing.");
       }
 
+      // Ensure user is on Sepolia (0xaa36a7) before proceeding to anchor on blockchain
+      const SEPOLIA_CHAIN_ID = '0xaa36a7';
+      const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+      
+      if (currentChainId !== SEPOLIA_CHAIN_ID) {
+        setUploading(prev => ({ ...prev, [index]: { ...prev[index], status: "Switching to Sepolia Testnet..." } }));
+        try {
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: SEPOLIA_CHAIN_ID }],
+          });
+          // Wait a moment for network switch to settle
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        } catch (switchError) {
+          throw new Error("Wrong Network: Please switch to Sepolia Testnet to anchor proofs.");
+        }
+      }
+
+      setUploading(prev => ({ ...prev, [index]: { ...prev[index], status: "Anchoring to Blockchain Registry..." } }));
+      
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       const contract = new ethers.Contract(
