@@ -143,11 +143,11 @@ export default function AssignedProjectsPage() {
                               </span>
                             </div>
                             <div style={{ textAlign: "right" }}>
-                              <span style={{ 
-                                display: "inline-block", 
-                                padding: "4px 8px", 
-                                borderRadius: "6px", 
-                                fontSize: "0.8rem", 
+                              <span style={{
+                                display: "inline-block",
+                                padding: "4px 8px",
+                                borderRadius: "6px",
+                                fontSize: "0.8rem",
                                 fontWeight: "700",
                                 background: statusStyles.background,
                                 color: statusStyles.color,
@@ -157,7 +157,7 @@ export default function AssignedProjectsPage() {
                               </span>
                             </div>
                           </div>
-                        )})}
+                        })}
                     </div>
                   </>
                 )}
