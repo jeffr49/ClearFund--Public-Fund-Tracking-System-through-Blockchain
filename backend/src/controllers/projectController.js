@@ -64,7 +64,8 @@ exports.createProject = async (req, res) => {
       title: (m.title || "").trim() || null,
       description: (m.description || "").trim() || null,
       amount: null,
-      deadline: idx === milestoneDefs.length - 1 ? projectDeadline : null
+      deadline: idx === milestoneDefs.length - 1 ? projectDeadline : null,
+      status: "yet_to_start"
     }));
 
     const { error: msError } = await supabase.from("milestones").insert(milestoneRows);

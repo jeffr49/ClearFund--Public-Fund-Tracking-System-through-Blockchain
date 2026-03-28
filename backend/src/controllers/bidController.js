@@ -274,7 +274,9 @@ exports.selectBid = async (req, res) => {
         .from("milestones")
         .update({
           amount: line.amount,
-          deadline: line.deadline
+          deadline: line.deadline,
+          status:
+            Number(line.milestone_index) === 0 ? "working" : "yet_to_start"
         })
         .eq("project_id", projectId)
         .eq("milestone_index", line.milestone_index);

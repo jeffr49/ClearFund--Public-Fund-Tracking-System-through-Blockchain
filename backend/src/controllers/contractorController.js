@@ -288,26 +288,25 @@ exports.getContractorStats = async (req, res) => {
     let total_earnings_inr = 0n;
 
     milestones.forEach(ms => {
-        // Find if this milestone was approved
-        const approvalEvent = events.find(e => 
+        const releaseEvent = events.find(e => 
             e.project_id === ms.project_id && 
             Number(e.milestone_id) === ms.milestone_index && 
-            e.event_type === "MILESTONE_APPROVED"
+            e.event_type === "FUNDS_RELEASED"
         );
 
-        if (approvalEvent) {
+        if (releaseEvent) {
             const deadline = new Date(ms.deadline);
-            const approvalDate = new Date(approvalEvent.created_at);
+            const releaseDate = new Date(releaseEvent.created_at);
             
-            if (approvalDate <= deadline) {
+            if (releaseDate <= deadline) {
                 on_time_count++;
             } else {
                 delayed_count++;
-                total_delay_ms += (approvalDate - deadline);
+                total_delay_ms += (releaseDate - deadline);
             }
 
             try {
-                total_earnings_inr += BigInt(ms.amount || 0);
+                total_earnings_inr += BigInt(releaseEvent?.metadata?.amount || ms.amount || 0);
             } catch (e) {}
         }
     });
