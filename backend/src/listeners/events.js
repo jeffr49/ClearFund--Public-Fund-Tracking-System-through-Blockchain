@@ -14,11 +14,23 @@ const RETRY_DELAY_MS = 300;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+function getEventLogDetails(eventPayload) {
+  const log = eventPayload?.log || eventPayload || {};
+  const txHash = log?.transactionHash || null;
+  const logIndex =
+    log?.index === undefined || log?.index === null
+      ? null
+      : String(log.index);
+
+  return { txHash, logIndex };
+}
+
 function buildEventKey(contractAddress, eventLog) {
-  if (!eventLog || !eventLog.transactionHash || eventLog.index === undefined) {
+  const { txHash, logIndex } = getEventLogDetails(eventLog);
+  if (!txHash || logIndex === null) {
     return null;
   }
-  return `${contractAddress.toLowerCase()}:${eventLog.transactionHash}:${eventLog.index}`;
+  return `${contractAddress.toLowerCase()}:${txHash}:${logIndex}`;
 }
 
 async function persistEvent(payload) {
@@ -53,6 +65,27 @@ async function hasRecordedFundsRelease(projectId, milestoneId) {
   return Boolean(data);
 }
 
+async function hasRecordedEventLog(eventLog) {
+  const { txHash, logIndex } = getEventLogDetails(eventLog);
+  if (!txHash || logIndex === null) {
+    return false;
+  }
+
+  const { data, error } = await supabase
+    .from("events")
+    .select("id")
+    .eq("metadata->>txHash", txHash)
+    .eq("metadata->>logIndex", logIndex)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return Boolean(data);
+}
+
 exports.listenToProject = (projectId, contractAddress) => {
   if (activeListeners.has(contractAddress)) return;
 
@@ -73,6 +106,11 @@ exports.listenToProject = (projectId, contractAddress) => {
     try {
       const eventKey = buildEventKey(contractAddress, eventLog);
       if (eventKey && seenEventKeys.has(eventKey)) return;
+      if (await hasRecordedEventLog(eventLog)) {
+        if (eventKey) seenEventKeys.add(eventKey);
+        return;
+      }
+      const { txHash, logIndex } = getEventLogDetails(eventLog);
 
       await persistEvent({
         project_id: projectId,
@@ -82,8 +120,8 @@ exports.listenToProject = (projectId, contractAddress) => {
         actor: "contractor",
         metadata: {
           ipfsHash: ipfsHash,
-          txHash: eventLog?.transactionHash || null,
-          logIndex: eventLog?.index ?? null
+          txHash,
+          logIndex
         }
       });
 
@@ -113,16 +151,22 @@ exports.listenToProject = (projectId, contractAddress) => {
     try {
       const eventKey = buildEventKey(contractAddress, eventLog);
       if (eventKey && seenEventKeys.has(eventKey)) return;
+      if (await hasRecordedEventLog(eventLog)) {
+        if (eventKey) seenEventKeys.add(eventKey);
+        return;
+      }
+      const numericMilestoneId = Number(milestoneId);
+      const { txHash, logIndex } = getEventLogDetails(eventLog);
 
       await persistEvent({
         project_id: projectId,
         contract_address: contractAddress,
         event_type: "MILESTONE_APPROVED",
-        milestone_id: Number(milestoneId),
+        milestone_id: numericMilestoneId,
         actor: approver,
         metadata: {
-          txHash: eventLog?.transactionHash || null,
-          logIndex: eventLog?.index ?? null
+          txHash,
+          logIndex
         }
       });
 
@@ -140,16 +184,22 @@ exports.listenToProject = (projectId, contractAddress) => {
     try {
       const eventKey = buildEventKey(contractAddress, eventLog);
       if (eventKey && seenEventKeys.has(eventKey)) return;
+      if (await hasRecordedEventLog(eventLog)) {
+        if (eventKey) seenEventKeys.add(eventKey);
+        return;
+      }
+      const numericMilestoneId = Number(milestoneId);
+      const { txHash, logIndex } = getEventLogDetails(eventLog);
 
       await persistEvent({
         project_id: projectId,
         contract_address: contractAddress,
         event_type: "MILESTONE_REJECTED",
-        milestone_id: Number(milestoneId),
+        milestone_id: numericMilestoneId,
         actor: approver,
         metadata: {
-          txHash: eventLog?.transactionHash || null,
-          logIndex: eventLog?.index ?? null
+          txHash,
+          logIndex
         }
       });
 
@@ -167,6 +217,10 @@ exports.listenToProject = (projectId, contractAddress) => {
     try {
       const eventKey = buildEventKey(contractAddress, eventLog);
       if (eventKey && seenEventKeys.has(eventKey)) return;
+      if (await hasRecordedEventLog(eventLog)) {
+        if (eventKey) seenEventKeys.add(eventKey);
+        return;
+      }
 
       const numericMilestoneId = Number(milestoneId);
       const alreadyRecorded = await hasRecordedFundsRelease(
@@ -177,6 +231,7 @@ exports.listenToProject = (projectId, contractAddress) => {
         if (eventKey) seenEventKeys.add(eventKey);
         return;
       }
+      const { txHash, logIndex } = getEventLogDetails(eventLog);
 
       await persistEvent({
         project_id: projectId,
@@ -186,8 +241,8 @@ exports.listenToProject = (projectId, contractAddress) => {
         actor: "system",
         metadata: {
           amount: amount.toString(),
-          txHash: eventLog?.transactionHash || null,
-          logIndex: eventLog?.index ?? null
+          txHash,
+          logIndex
         }
       });
 
@@ -236,6 +291,11 @@ exports.listenToProject = (projectId, contractAddress) => {
     try {
       const eventKey = buildEventKey(contractAddress, eventLog);
       if (eventKey && seenEventKeys.has(eventKey)) return;
+      if (await hasRecordedEventLog(eventLog)) {
+        if (eventKey) seenEventKeys.add(eventKey);
+        return;
+      }
+      const { txHash, logIndex } = getEventLogDetails(eventLog);
 
       await persistEvent({
         project_id: projectId,
@@ -245,8 +305,8 @@ exports.listenToProject = (projectId, contractAddress) => {
         actor: "approver",
         metadata: {
           newDeadline: Number(newDeadline),
-          txHash: eventLog?.transactionHash || null,
-          logIndex: eventLog?.index ?? null
+          txHash,
+          logIndex
         }
       });
 

@@ -31,6 +31,14 @@ function calculateScore(stats) {
     return Math.min(100, Math.round(score));
 }
 
+function countUniqueActors(events, eventType) {
+  return new Set(
+    (events || [])
+      .filter((event) => event.event_type === eventType && event.actor)
+      .map((event) => event.actor.toLowerCase())
+  ).size;
+}
+
 function deriveMilestoneStatus(milestoneEvents, approvalThreshold) {
   const latestProofEvent = milestoneEvents
     .filter((event) => event.event_type === "PROOF_SUBMITTED")
@@ -53,9 +61,10 @@ function deriveMilestoneStatus(milestoneEvents, approvalThreshold) {
   );
   if (hasDeadlineExtended) return "REJECTED";
 
-  const approvalCount = currentCycleEvents.filter(
-    (event) => event.event_type === "MILESTONE_APPROVED"
-  ).length;
+  const approvalCount = countUniqueActors(
+    currentCycleEvents,
+    "MILESTONE_APPROVED"
+  );
   if (approvalCount >= approvalThreshold) return "APPROVED";
 
   return "UNDER_REVIEW";
@@ -78,12 +87,14 @@ function normalizeMilestone(row, milestoneEvents, approvalThreshold) {
         );
 
   const ipfsHash = latestProofEvent?.metadata?.ipfsHash || null;
-  const approvalsObtained = currentCycleEvents.filter(
-    (event) => event.event_type === "MILESTONE_APPROVED"
-  ).length;
-  const rejectionsObtained = currentCycleEvents.filter(
-    (event) => event.event_type === "MILESTONE_REJECTED"
-  ).length;
+  const approvalsObtained = countUniqueActors(
+    currentCycleEvents,
+    "MILESTONE_APPROVED"
+  );
+  const rejectionsObtained = countUniqueActors(
+    currentCycleEvents,
+    "MILESTONE_REJECTED"
+  );
 
   return {
     id: row.id,
