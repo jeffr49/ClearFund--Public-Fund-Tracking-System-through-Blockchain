@@ -34,14 +34,11 @@ function formatInr(n) {
   }).format(Number(n) || 0);
 }
 
-/** Whole rupees from API (FUNDS_RELEASED sum; on-chain INR units). */
 function formatInrWhole(amountStr) {
   try {
     const bi = BigInt(amountStr || "0");
     const max = BigInt(Number.MAX_SAFE_INTEGER);
-    if (bi > max) {
-      return `₹${bi.toLocaleString("en-IN")}`;
-    }
+    if (bi > max) return `₹${bi.toLocaleString("en-IN")}`;
     return new Intl.NumberFormat("en-IN", {
       style: "currency",
       currency: "INR",
@@ -49,6 +46,63 @@ function formatInrWhole(amountStr) {
     }).format(Number(bi));
   } catch {
     return "—";
+  }
+}
+
+const SORT_OPTIONS = [
+  { value: "", label: "Default" },
+  { value: "budget_desc", label: "Budget: High → Low" },
+  { value: "budget_asc", label: "Budget: Low → High" },
+  { value: "name_asc", label: "Name: A → Z" },
+  { value: "name_desc", label: "Name: Z → A" },
+  { value: "deadline_asc", label: "Deadline: Nearest" }
+];
+
+// All Indian States & UTs
+const INDIAN_STATES = [
+  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
+  "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand",
+  "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur",
+  "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab",
+  "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura",
+  "Uttar Pradesh", "Uttarakhand", "West Bengal",
+  // Union Territories
+  "Andaman and Nicobar Islands", "Chandigarh",
+  "Dadra and Nagar Haveli and Daman and Diu", "Delhi",
+  "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry"
+];
+
+/** Detect which Indian state appears in a location_address string */
+function extractState(address) {
+  if (!address) return null;
+  const lower = address.toLowerCase();
+  return INDIAN_STATES.find((s) => lower.includes(s.toLowerCase())) || null;
+}
+
+/**
+ * Best-effort state resolver:
+ * 1. Try extracting from the address string.
+ * 2. Fall back to a previously reverse-geocoded result stored in resolvedStates map.
+ */
+function getProjectState(project, resolvedStates) {
+  return extractState(project.location_address) || resolvedStates[project.id] || null;
+}
+
+/** Reverse-geocode a single project via BigDataCloud (free, no key required). */
+async function reverseGeocodeState(lat, lng) {
+  try {
+    const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    // principalSubdivision = state name in English
+    const subdivision = data?.principalSubdivision;
+    if (!subdivision) return null;
+    // Match to our known states to keep naming consistent
+    const lower = subdivision.toLowerCase();
+    return INDIAN_STATES.find((s) => s.toLowerCase() === lower || lower.includes(s.toLowerCase())) || subdivision;
+  } catch {
+    return null;
   }
 }
 
@@ -60,8 +114,16 @@ export default function ProjectsLedgerOverview({
   const [raw, setRaw] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Filter state
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [stateFilter, setStateFilter] = useState("");
+  const [sortBy, setSortBy] = useState("");
+  const [budgetMax, setBudgetMax] = useState(null);
+  const [budgetFilter, setBudgetFilter] = useState(null);
+  // project.id → resolved Indian state (from reverse geocoding)
+  const [resolvedStates, setResolvedStates] = useState({});
 
   useEffect(() => {
     let cancelled = false;
@@ -72,33 +134,88 @@ export default function ProjectsLedgerOverview({
         const res = await fetch(`${API_BASE}/projects/overview`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to load overview");
-        if (!cancelled) setRaw(data);
+        if (!cancelled) {
+          setRaw(data);
+          const projects = data?.projects || [];
+          const max = Math.max(...projects.map((p) => Number(p.maximum_bid_amount) || 0), 0);
+          setBudgetMax(max || null);
+          setBudgetFilter(max || null);
+
+          // Background: geocode projects whose address has no recognisable state
+          const needsGeocode = projects.filter(
+            (p) => !extractState(p.location_address) &&
+                   p.location_lat != null && p.location_lng != null
+          );
+          if (needsGeocode.length > 0) {
+            (async () => {
+              const resolved = {};
+              for (const p of needsGeocode) {
+                if (cancelled) break;
+                const state = await reverseGeocodeState(p.location_lat, p.location_lng);
+                if (state) resolved[p.id] = state;
+                // be polite to the free API
+                await new Promise((r) => setTimeout(r, 120));
+              }
+              if (!cancelled && Object.keys(resolved).length > 0) {
+                setResolvedStates((prev) => ({ ...prev, ...resolved }));
+              }
+            })();
+          }
+        }
       } catch (e) {
         if (!cancelled) setError(e.message || "Failed to load");
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
   const filteredProjects = useMemo(() => {
     const list = raw?.projects || [];
-    return list.filter((p) => {
+    let result = list.filter((p) => {
       const q = search.trim().toLowerCase();
       const matchSearch =
         !q ||
         (p.title && p.title.toLowerCase().includes(q)) ||
         (p.location_address && p.location_address.toLowerCase().includes(q));
-      const matchStatus =
-        !statusFilter || p.display_status === statusFilter;
-      return matchSearch && matchStatus;
+      const matchStatus = !statusFilter || p.display_status === statusFilter;
+      const matchState = !stateFilter || getProjectState(p, resolvedStates) === stateFilter;
+      const matchBudget =
+        budgetFilter === null ||
+        budgetMax === null ||
+        Number(p.maximum_bid_amount) <= budgetFilter;
+      return matchSearch && matchStatus && matchState && matchBudget;
     });
-  }, [raw, search, statusFilter]);
+
+    if (sortBy === "budget_desc") {
+      result = [...result].sort((a, b) => Number(b.maximum_bid_amount) - Number(a.maximum_bid_amount));
+    } else if (sortBy === "budget_asc") {
+      result = [...result].sort((a, b) => Number(a.maximum_bid_amount) - Number(b.maximum_bid_amount));
+    } else if (sortBy === "name_asc") {
+      result = [...result].sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+    } else if (sortBy === "name_desc") {
+      result = [...result].sort((a, b) => (b.title || "").localeCompare(a.title || ""));
+    } else if (sortBy === "deadline_asc") {
+      result = [...result].sort((a, b) => {
+        const da = a.project_deadline ? new Date(a.project_deadline).getTime() : Infinity;
+        const db = b.project_deadline ? new Date(b.project_deadline).getTime() : Infinity;
+        return da - db;
+      });
+    }
+    return result;
+  }, [raw, search, statusFilter, stateFilter, budgetFilter, budgetMax, sortBy, resolvedStates]);
 
   const stats = raw?.stats;
+  const budgetChipActive = budgetFilter !== null && budgetMax !== null && budgetFilter < budgetMax;
+  const activeFilterCount = [statusFilter, stateFilter, sortBy, budgetChipActive ? "budget" : ""].filter(Boolean).length;
+
+  const clearFilters = () => {
+    setStatusFilter("");
+    setStateFilter("");
+    setSortBy("");
+    setBudgetFilter(budgetMax);
+  };
 
   return (
     <>
@@ -107,12 +224,12 @@ export default function ProjectsLedgerOverview({
           <div className="logo">
             <i className="fa-solid fa-link"></i> ClearFund
           </div>
-          <div className="nav-controls" style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+          <div className="nav-controls" style={{ display: "flex", gap: "1.5rem", alignItems: "center" }}>
             <div className="search-bar center-search">
               <i className="fa-solid fa-search"></i>
               <input
                 type="text"
-                placeholder="Search projects by name or keyword..."
+                placeholder="Search projects by name or location..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -122,19 +239,117 @@ export default function ProjectsLedgerOverview({
             <ProfileMenu />
           </div>
         </div>
+
+        {/* ─── Filter Bar ─── */}
         <div className="filters-bar">
-          <div className="nav-container filter-container">
-            <select
-              id="filterStatus"
-              className="filter-select"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value="">All Statuses</option>
-              <option value="ongoing">Ongoing</option>
-              <option value="bidding">Bidding</option>
-              <option value="completed">Completed</option>
-            </select>
+          <div className="filter-container">
+
+            {/* Status Filter */}
+            <div className="filter-pill-group">
+              <i className="fa-solid fa-layer-group filter-pill-icon"></i>
+              <select
+                id="filterStatus"
+                className="filter-select"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="">All Statuses</option>
+                <option value="ongoing">Ongoing</option>
+                <option value="bidding">Bidding</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+
+            {/* State Filter */}
+            <div className="filter-pill-group">
+              <i className="fa-solid fa-map-location-dot filter-pill-icon"></i>
+              <select
+                id="filterState"
+                className="filter-select"
+                value={stateFilter}
+                onChange={(e) => setStateFilter(e.target.value)}
+              >
+                <option value="">All States</option>
+                {INDIAN_STATES.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Sort Filter */}
+            <div className="filter-pill-group">
+              <i className="fa-solid fa-arrow-up-wide-short filter-pill-icon"></i>
+              <select
+                id="filterSort"
+                className="filter-select"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+              >
+                {SORT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Budget Range Slider */}
+            {budgetMax !== null && budgetMax > 0 && (
+              <div className="filter-slider-group">
+                <i className="fa-solid fa-indian-rupee-sign" style={{ color: "var(--text-secondary)", fontSize: "0.85rem" }}></i>
+                <span className="filter-slider-label">Budget ≤</span>
+                <input
+                  id="filterBudget"
+                  type="range"
+                  className="filter-slider"
+                  min={0}
+                  max={budgetMax}
+                  step={Math.max(1, Math.round(budgetMax / 100))}
+                  value={budgetFilter ?? budgetMax}
+                  onChange={(e) => setBudgetFilter(Number(e.target.value))}
+                />
+                <span className="filter-slider-value">{formatInr(budgetFilter ?? budgetMax)}</span>
+              </div>
+            )}
+
+            {/* Spacer */}
+            <div className="filter-spacer" />
+
+            {/* Active chips + clear */}
+            <div className="filter-chips-row">
+              {statusFilter && (
+                <span className="filter-chip">
+                  <i className={`fa-solid fa-circle filter-chip-dot status-dot-${statusFilter}`}></i>
+                  {statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
+                  <button className="filter-chip-remove" onClick={() => setStatusFilter("")}>×</button>
+                </span>
+              )}
+              {stateFilter && (
+                <span className="filter-chip">
+                  <i className="fa-solid fa-map-location-dot"></i>
+                  &nbsp;{stateFilter}
+                  <button className="filter-chip-remove" onClick={() => setStateFilter("")}>×</button>
+                </span>
+              )}
+              {sortBy && (
+                <span className="filter-chip">
+                  <i className="fa-solid fa-sort"></i>
+                  &nbsp;{SORT_OPTIONS.find((o) => o.value === sortBy)?.label}
+                  <button className="filter-chip-remove" onClick={() => setSortBy("")}>×</button>
+                </span>
+              )}
+              {budgetChipActive && (
+                <span className="filter-chip">
+                  <i className="fa-solid fa-coins"></i>
+                  &nbsp;≤ {formatInr(budgetFilter)}
+                  <button className="filter-chip-remove" onClick={() => setBudgetFilter(budgetMax)}>×</button>
+                </span>
+              )}
+              {activeFilterCount > 0 && (
+                <button className="clear-filters-btn" onClick={clearFilters}>
+                  <i className="fa-solid fa-xmark"></i> Clear all
+                </button>
+              )}
+            </div>
+
           </div>
         </div>
       </nav>
@@ -169,54 +384,42 @@ export default function ProjectsLedgerOverview({
         ) : (
           <div className="stats-bar">
             <div className="stat-card">
-              <div className="stat-icon grey">
-                <i className="fa-solid fa-folder"></i>
-              </div>
+              <div className="stat-icon grey"><i className="fa-solid fa-folder"></i></div>
               <div className="stat-info">
                 <span>Total Projects</span>
                 <strong>{stats?.total_projects ?? 0}</strong>
               </div>
             </div>
             <div className="stat-card">
-              <div className="stat-icon blue">
-                <i className="fa-solid fa-coins"></i>
-              </div>
+              <div className="stat-icon blue"><i className="fa-solid fa-coins"></i></div>
               <div className="stat-info">
                 <span>Total Budget</span>
                 <strong>{formatInr(stats?.total_budget ?? 0)}</strong>
               </div>
             </div>
             <div className="stat-card">
-              <div className="stat-icon green">
-                <i className="fa-solid fa-right-from-bracket"></i>
-              </div>
+              <div className="stat-icon green"><i className="fa-solid fa-right-from-bracket"></i></div>
               <div className="stat-info">
                 <span>Funds Released</span>
                 <strong>{formatInrWhole(stats?.funds_released_inr)}</strong>
               </div>
             </div>
             <div className="stat-card">
-              <div className="stat-icon blue">
-                <i className="fa-solid fa-spinner fa-spin"></i>
-              </div>
+              <div className="stat-icon blue"><i className="fa-solid fa-spinner fa-spin"></i></div>
               <div className="stat-info">
                 <span>Ongoing</span>
                 <strong>{stats?.ongoing ?? 0}</strong>
               </div>
             </div>
             <div className="stat-card">
-              <div className="stat-icon red">
-                <i className="fa-solid fa-gavel"></i>
-              </div>
+              <div className="stat-icon red"><i className="fa-solid fa-gavel"></i></div>
               <div className="stat-info">
                 <span>Bidding</span>
                 <strong>{stats?.bidding ?? 0}</strong>
               </div>
             </div>
             <div className="stat-card">
-              <div className="stat-icon green">
-                <i className="fa-solid fa-check"></i>
-              </div>
+              <div className="stat-icon green"><i className="fa-solid fa-check"></i></div>
               <div className="stat-info">
                 <span>Completed</span>
                 <strong>{stats?.completed ?? 0}</strong>
@@ -247,7 +450,7 @@ export default function ProjectsLedgerOverview({
               <p style={{ color: "var(--text-secondary)" }}>
                 {raw?.projects?.length === 0
                   ? "Create a project from the government console when you are ready."
-                  : "Try adjusting search or status filter."}
+                  : "Try adjusting search or filters."}
               </p>
             </div>
           )}
@@ -258,12 +461,11 @@ export default function ProjectsLedgerOverview({
             const segments =
               total > 0
                 ? Array.from({ length: total }, (_, i) => {
-                  let cls = "progress-segment";
-                  if (i < done) cls += " completed";
-                  else if (i === done && p.display_status === "ongoing")
-                    cls += " current";
-                  return <div key={i} className={cls} />;
-                })
+                    let cls = "progress-segment";
+                    if (i < done) cls += " completed";
+                    else if (i === done && p.display_status === "ongoing") cls += " current";
+                    return <div key={i} className={cls} />;
+                  })
                 : [<div key="na" className="progress-segment" style={{ flex: 1 }} />];
 
             return (
@@ -276,9 +478,7 @@ export default function ProjectsLedgerOverview({
                       {p.location_address || "No address"}
                     </div>
                   </div>
-                  <span className={`badge ${p.display_status}`}>
-                    {p.display_status}
-                  </span>
+                  <span className={`badge ${p.display_status}`}>{p.display_status}</span>
                 </div>
                 <div className="card-budget">{formatInr(p.maximum_bid_amount)}</div>
                 <div className="progress-section">
@@ -288,8 +488,8 @@ export default function ProjectsLedgerOverview({
                       {total > 0
                         ? `${done} / ${total} released`
                         : done > 0
-                          ? `${done} on-chain release(s)`
-                          : "—"}
+                        ? `${done} on-chain release(s)`
+                        : "—"}
                     </span>
                   </div>
                   <div className="progress-track">{segments}</div>
@@ -309,6 +509,32 @@ export default function ProjectsLedgerOverview({
                     <i className="fa-regular fa-calendar-check" style={{ marginRight: 8, color: "var(--accent-green)" }}></i>
                     {new Date(p.project_deadline).toLocaleDateString()}
                   </div>
+                )}
+
+                {/* Milestone Proofs */}
+                {p.milestones && p.milestones.some(m => m.proofs?.length > 0) && (
+                    <div className="proofs-section" style={{ marginTop: "1rem", paddingTop: "1rem", borderTop: "1px dashed var(--border-color)" }}>
+                        <strong style={{ fontSize: "0.85rem", color: "var(--text-secondary)", display: "block", marginBottom: "0.5rem" }}>Attached Evidence</strong>
+                        {p.milestones.filter(m => m.proofs?.length > 0).map(m => (
+                            <div key={m.milestone_index} style={{ marginBottom: "0.5rem", fontSize: "0.85rem" }}>
+                                <span style={{ fontWeight: "600", color: "var(--text-primary)" }}>Milestone {m.milestone_index + 1}:</span>
+                                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "4px" }}>
+                                    {m.proofs.map((proofObj, i) => {
+                                        const { hash, status } = proofObj;
+                                        let bg = "#f1f5f9", text = "#475569", border = "#cbd5e1", icon = "fa-file", label = "Pending";
+                                        if (status === "Accepted") { bg = "#f0fdf4"; text = "#16a34a"; border = "#bbf7d0"; icon = "fa-check-circle"; label = "Accepted"; }
+                                        else if (status === "Rejected") { bg = "#fef2f2"; text = "#dc2626"; border = "#fecaca"; icon = "fa-times-circle"; label = "Rejected"; }
+                                        
+                                        return (
+                                          <a key={i} href={`https://gateway.pinata.cloud/ipfs/${hash}`} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "4px 8px", background: bg, color: text, borderRadius: "6px", textDecoration: "none", border: `1px solid ${border}`, fontSize: "0.75rem", transition: "all 0.2s" }} onMouseOver={(e) => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.05)" }} onMouseOut={(e) => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "none" }} title={`${label} File`}>
+                                              <i className={`fa-solid ${icon}`}></i> {label} File
+                                          </a>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 )}
               </div>
             );
