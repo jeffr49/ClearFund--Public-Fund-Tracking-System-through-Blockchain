@@ -4,9 +4,8 @@ const { ethers } = require("ethers");
 const escrowAbi = require("../../abi/ProjectEscrow.json");
 
 const FALLBACK_APPROVAL_THRESHOLD = 2;
-const provider = process.env.RPC_URL
-  ? new ethers.JsonRpcProvider(process.env.RPC_URL)
-  : null;
+const rpcUrl = process.env.RPC_URL || process.env.ALCHEMY_URL;
+const provider = rpcUrl ? new ethers.JsonRpcProvider(rpcUrl) : null;
 
 async function getApprovalThreshold(contractAddress) {
   if (!provider || !contractAddress) {

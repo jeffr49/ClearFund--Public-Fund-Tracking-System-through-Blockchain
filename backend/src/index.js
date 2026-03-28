@@ -14,6 +14,7 @@ app.get("/health", (_req, res) => {
   res.json({ ok: true, service: "backend" });
 });
 
+app.use("/auth", require("./routes/auth"));
 app.use("/projects", require("./routes/projects"));
 app.use("/signer", require("./routes/signer"));
 app.use("/bids", require("./routes/bids"));
@@ -26,8 +27,8 @@ app.use("/contractor", require("./routes/contractor"));
 // =========================
 async function initListeners() {
   try {
-    if (!process.env.RPC_URL) {
-      console.warn("Skipping listener init: RPC_URL not configured");
+    if (!process.env.RPC_URL && !process.env.ALCHEMY_URL) {
+      console.warn("Skipping listener init: set RPC_URL or ALCHEMY_URL");
       return;
     }
 

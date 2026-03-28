@@ -3,7 +3,8 @@ const supabase = require("../db/supabaseClient");
 
 const escrowAbi = require("../../abi/ProjectEscrow.json");
 
-const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
+const RPC_URL = process.env.RPC_URL || process.env.ALCHEMY_URL;
+const provider = new ethers.JsonRpcProvider(RPC_URL);
 
 const activeListeners = new Set();
 const seenEventKeys = new Set();
