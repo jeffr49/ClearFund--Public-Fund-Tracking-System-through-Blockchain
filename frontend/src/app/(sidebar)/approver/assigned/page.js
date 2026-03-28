@@ -25,6 +25,19 @@ export default function AssignedProjectsPage() {
     project?.budget ??
     0;
 
+  const getMilestoneStatusStyles = (status) => {
+    if (status === "completed") {
+      return { background: "#dcfce7", color: "#166534", label: "completed" };
+    }
+    if (status === "working") {
+      return { background: "#e0e7ff", color: "#3730a3", label: "working" };
+    }
+    if (status === "extended") {
+      return { background: "#fff7ed", color: "#c2410c", label: "extended" };
+    }
+    return { background: "#f3f4f6", color: "#4b5563", label: status || "yet_to_start" };
+  };
+
   useEffect(() => {
     const storedUser = sessionStorage.getItem("clearfund_user");
     if (!storedUser) {
@@ -109,8 +122,10 @@ export default function AssignedProjectsPage() {
                     <div style={{ display: "grid", gap: "1rem" }}>
                       {[...p.milestones]
                         .sort((a, b) => Number(a.milestone_index ?? 0) - Number(b.milestone_index ?? 0))
-                        .map((ms, idx) => (
-                          <div key={idx} style={{
+                        .map((ms, idx) => {
+                          const statusStyles = getMilestoneStatusStyles(ms.status);
+
+                          return <div key={idx} style={{
                             display: "flex",
                             justifyContent: "space-between",
                             alignItems: "center",
@@ -134,15 +149,15 @@ export default function AssignedProjectsPage() {
                                 borderRadius: "6px", 
                                 fontSize: "0.8rem", 
                                 fontWeight: "700",
-                                background: ms.status === "completed" ? "#dcfce7" : ms.status === "working" ? "#e0e7ff" : "#f3f4f6",
-                                color: ms.status === "completed" ? "#166534" : ms.status === "working" ? "#3730a3" : "#4b5563",
+                                background: statusStyles.background,
+                                color: statusStyles.color,
                                 textTransform: "uppercase"
                               }}>
-                                {ms.status || "PENDING"}
+                                {statusStyles.label}
                               </span>
                             </div>
                           </div>
-                        ))}
+                        )})}
                     </div>
                   </>
                 )}

@@ -72,6 +72,18 @@ exports.listenToProject = (projectId, contractAddress) => {
 
       if (eventKey) seenEventKeys.add(eventKey);
 
+      const { error: milestoneStatusErr } = await supabase
+        .from("milestones")
+        .update({ status: "working" })
+        .eq("project_id", projectId)
+        .eq("milestone_index", Number(milestoneId));
+      if (milestoneStatusErr) {
+        console.error(
+          "Error updating milestone to working after proof submission:",
+          milestoneStatusErr
+        );
+      }
+
     } catch (err) {
       console.error("ProofSubmitted error:", err);
     }
@@ -168,6 +180,22 @@ exports.listenToProject = (projectId, contractAddress) => {
         .eq("project_id", projectId)
         .eq("milestone_index", numId + 1);
       if (updErr2) console.error("Error updating next milestone to working:", updErr2);
+
+      const { data: remainingMilestone, error: remainingErr } = await supabase
+        .from("milestones")
+        .select("id")
+        .eq("project_id", projectId)
+        .eq("milestone_index", numId + 1)
+        .maybeSingle();
+      if (remainingErr) {
+        console.error("Error checking next milestone existence:", remainingErr);
+      } else if (!remainingMilestone) {
+        const { error: projectDoneErr } = await supabase
+          .from("projects")
+          .update({ status: "completed" })
+          .eq("id", projectId);
+        if (projectDoneErr) console.error("Error updating project to completed:", projectDoneErr);
+      }
 
     } catch (err) {
       console.error("FundsReleased error:", err);

@@ -42,7 +42,13 @@ exports.getSignerTasks = async (req, res) => {
         projects ( title, status, contract_address )
       `)
       .in("project_id", projectIds)
-      .in("event_type", ["PROOF_SUBMITTED", "MILESTONE_APPROVED", "MILESTONE_REJECTED"]);
+      .in("event_type", [
+        "PROOF_SUBMITTED",
+        "MILESTONE_APPROVED",
+        "MILESTONE_REJECTED",
+        "FUNDS_RELEASED",
+        "DEADLINE_EXTENDED"
+      ]);
 
     if (eventsError) throw eventsError;
 
@@ -62,7 +68,8 @@ exports.getSignerTasks = async (req, res) => {
         if (!milestoneStates[key]) {
             milestoneStates[key] = {
                 latestProof: null,
-                latestVoteByApprover: null
+                latestVoteByApprover: null,
+                latestTerminalEvent: null
             };
         }
         
@@ -71,6 +78,10 @@ exports.getSignerTasks = async (req, res) => {
         if (e.event_type === "PROOF_SUBMITTED") {
             if (!milestoneStates[key].latestProof || timestamp > milestoneStates[key].latestProof.timestamp) {
                 milestoneStates[key].latestProof = { ...e, timestamp };
+            }
+        } else if (e.event_type === "FUNDS_RELEASED" || e.event_type === "DEADLINE_EXTENDED") {
+            if (!milestoneStates[key].latestTerminalEvent || timestamp > milestoneStates[key].latestTerminalEvent.timestamp) {
+                milestoneStates[key].latestTerminalEvent = { ...e, timestamp };
             }
         } else if ((e.event_type === "MILESTONE_APPROVED" || e.event_type === "MILESTONE_REJECTED") && e.actor && e.actor.toLowerCase() === normalizedWallet) {
             if (!milestoneStates[key].latestVoteByApprover || timestamp > milestoneStates[key].latestVoteByApprover.timestamp) {
@@ -89,7 +100,14 @@ exports.getSignerTasks = async (req, res) => {
                 continue;
             }
 
-            if (!state.latestVoteByApprover || state.latestProof.timestamp > state.latestVoteByApprover.timestamp) {
+            const proofStillPending =
+              !state.latestTerminalEvent ||
+              state.latestProof.timestamp > state.latestTerminalEvent.timestamp;
+
+            if (
+              proofStillPending &&
+              (!state.latestVoteByApprover || state.latestProof.timestamp > state.latestVoteByApprover.timestamp)
+            ) {
                 const e = state.latestProof;
                 const milestone = milestoneMap.get(`${e.project_id}-${e.milestone_id}`);
                 tasks.push({

@@ -31,6 +31,7 @@ contract ProjectEscrow {
         uint256 amount;
         uint256 deadline;
         string ipfsHash;
+        uint256 submissionRound;
 
         uint8 approvals;
         uint8 rejections;
@@ -38,8 +39,8 @@ contract ProjectEscrow {
         bool submitted;
         bool released;
 
-        mapping(address => bool) voted;
-        mapping(address => bool) rejected;
+        mapping(address => uint256) approvedRound;
+        mapping(address => uint256) rejectedRound;
     }
 
     mapping(uint256 => Milestone) public milestones;
@@ -103,6 +104,7 @@ contract ProjectEscrow {
 
         Milestone storage m = milestones[id];
 
+        m.submissionRound++;
         m.approvals = 0;
         m.rejections = 0;
 
@@ -119,10 +121,16 @@ contract ProjectEscrow {
         Milestone storage m = milestones[id];
 
         require(m.submitted, "Proof not submitted");
-        require(!m.voted[msg.sender], "Already approved");
-        require(!m.rejected[msg.sender], "Already rejected");
+        require(
+            m.approvedRound[msg.sender] != m.submissionRound,
+            "Already approved"
+        );
+        require(
+            m.rejectedRound[msg.sender] != m.submissionRound,
+            "Already rejected"
+        );
 
-        m.voted[msg.sender] = true;
+        m.approvedRound[msg.sender] = m.submissionRound;
         m.approvals++;
 
         emit MilestoneApproved(id, msg.sender);
@@ -140,10 +148,16 @@ contract ProjectEscrow {
         Milestone storage m = milestones[id];
 
         require(m.submitted, "Proof not submitted");
-        require(!m.rejected[msg.sender], "Already rejected");
-        require(!m.voted[msg.sender], "Already approved");
+        require(
+            m.rejectedRound[msg.sender] != m.submissionRound,
+            "Already rejected"
+        );
+        require(
+            m.approvedRound[msg.sender] != m.submissionRound,
+            "Already approved"
+        );
 
-        m.rejected[msg.sender] = true;
+        m.rejectedRound[msg.sender] = m.submissionRound;
         m.rejections++;
 
         emit MilestoneRejected(id, msg.sender);

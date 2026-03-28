@@ -32,22 +32,33 @@ function calculateScore(stats) {
 }
 
 function deriveMilestoneStatus(milestoneEvents, approvalThreshold) {
-  const hasRejection = milestoneEvents.some(
-    (event) => event.event_type === "MILESTONE_REJECTED"
-  );
-  if (hasRejection) return "REJECTED";
+  const latestProofEvent = milestoneEvents
+    .filter((event) => event.event_type === "PROOF_SUBMITTED")
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
 
-  const approvalCount = milestoneEvents.filter(
+  if (!latestProofEvent) return "NOT_SUBMITTED";
+
+  const latestProofTime = new Date(latestProofEvent.created_at).getTime();
+  const currentCycleEvents = milestoneEvents.filter(
+    (event) => new Date(event.created_at).getTime() >= latestProofTime
+  );
+
+  const hasFundsReleased = currentCycleEvents.some(
+    (event) => event.event_type === "FUNDS_RELEASED"
+  );
+  if (hasFundsReleased) return "APPROVED";
+
+  const hasDeadlineExtended = currentCycleEvents.some(
+    (event) => event.event_type === "DEADLINE_EXTENDED"
+  );
+  if (hasDeadlineExtended) return "REJECTED";
+
+  const approvalCount = currentCycleEvents.filter(
     (event) => event.event_type === "MILESTONE_APPROVED"
   ).length;
   if (approvalCount >= approvalThreshold) return "APPROVED";
 
-  const hasProof = milestoneEvents.some(
-    (event) => event.event_type === "PROOF_SUBMITTED"
-  );
-  if (hasProof) return "UNDER_REVIEW";
-
-  return "NOT_SUBMITTED";
+  return "UNDER_REVIEW";
 }
 
 function normalizeMilestone(row, milestoneEvents, approvalThreshold) {
@@ -55,7 +66,24 @@ function normalizeMilestone(row, milestoneEvents, approvalThreshold) {
     .filter((event) => event.event_type === "PROOF_SUBMITTED")
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
 
+  const latestProofTime = latestProofEvent
+    ? new Date(latestProofEvent.created_at).getTime()
+    : null;
+
+  const currentCycleEvents =
+    latestProofTime === null
+      ? []
+      : milestoneEvents.filter(
+          (event) => new Date(event.created_at).getTime() >= latestProofTime
+        );
+
   const ipfsHash = latestProofEvent?.metadata?.ipfsHash || null;
+  const approvalsObtained = currentCycleEvents.filter(
+    (event) => event.event_type === "MILESTONE_APPROVED"
+  ).length;
+  const rejectionsObtained = currentCycleEvents.filter(
+    (event) => event.event_type === "MILESTONE_REJECTED"
+  ).length;
 
   return {
     id: row.id,
@@ -66,7 +94,10 @@ function normalizeMilestone(row, milestoneEvents, approvalThreshold) {
     deadline: row.deadline,
     status: deriveMilestoneStatus(milestoneEvents, approvalThreshold),
     ipfsHash,
-    ipfsUrls: ipfsHash ? ipfsHash.split(',').map(hash => `https://gateway.pinata.cloud/ipfs/${hash.trim()}`) : []
+    ipfsUrls: ipfsHash ? ipfsHash.split(',').map(hash => `https://gateway.pinata.cloud/ipfs/${hash.trim()}`) : [],
+    approval_threshold: approvalThreshold,
+    approvals_obtained: approvalsObtained,
+    rejections_obtained: rejectionsObtained
   };
 }
 
@@ -160,6 +191,11 @@ exports.getProjectDetails = async (req, res) => {
       (milestone) => milestone.status !== "APPROVED"
     );
 
+    const totalBudgetInr = normalizedMilestones.reduce(
+      (sum, milestone) => sum + BigInt(Math.round(Number(milestone.amount || 0))),
+      0n
+    );
+
     const fundsReleasedInr = (events || [])
       .filter((event) => event.event_type === "FUNDS_RELEASED")
       .reduce((sum, event) => {
@@ -184,12 +220,14 @@ exports.getProjectDetails = async (req, res) => {
       milestones: normalizedMilestones,
       progress: {
         approval_threshold: approvalThreshold,
+        current_milestone: currentMilestone || null,
         current_milestone_index: currentMilestone
           ? currentMilestone.index
           : normalizedMilestones.length,
         total_milestones: normalizedMilestones.length,
         approved_milestones: approvedCount,
-        funds_released_inr: fundsReleasedInr.toString()
+        funds_released_inr: fundsReleasedInr.toString(),
+        total_budget_inr: totalBudgetInr.toString()
       }
     });
   } catch (err) {
