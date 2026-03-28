@@ -39,6 +39,28 @@ function buildEventKey(contractAddress, eventLog) {
 }
 
 async function persistEvent(payload) {
+  const requiresConcreteLog = new Set([
+    "PROOF_SUBMITTED",
+    "MILESTONE_APPROVED",
+    "MILESTONE_REJECTED",
+    "FUNDS_RELEASED",
+    "DEADLINE_EXTENDED"
+  ]);
+
+  if (requiresConcreteLog.has(payload?.event_type)) {
+    const txHash = payload?.metadata?.txHash || null;
+    const logIndex =
+      payload?.metadata?.logIndex === undefined || payload?.metadata?.logIndex === null
+        ? null
+        : String(payload.metadata.logIndex);
+
+    if (!txHash || logIndex === null) {
+      throw new Error(
+        `Refusing to persist ${payload.event_type} without txHash/logIndex`
+      );
+    }
+  }
+
   for (let attempt = 1; attempt <= INSERT_RETRIES; attempt++) {
     const { error } = await supabase.from("events").insert([payload]);
 
