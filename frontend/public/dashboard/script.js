@@ -537,7 +537,22 @@ const renderMapMarkers = (data) => {
     });
 };
 
+let homeTemplate = '';
+
+const restoreHome = () => {
+    const main = document.querySelector('.container');
+    if (main && !document.getElementById('projectGrid')) {
+        if (map) {
+            try { map.remove(); } catch(e) { console.error(e); }
+        }
+        main.innerHTML = homeTemplate;
+        initMap(); 
+        initLocationAutocomplete();
+    }
+};
+
 const renderGrid = (data = projects) => {
+    restoreHome();
     if(typeof renderMapMarkers === 'function') renderMapMarkers(data);
     renderStats(data);
 
@@ -883,15 +898,311 @@ const initSidebar = () => {
         li.addEventListener('click', () => {
             sidebar.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
             li.classList.add('active');
-            if (li.dataset.id === 'home') {
+            const sectionId = li.dataset.id;
+            if (sectionId === 'home') {
                 renderGrid();
+            } else if (sectionId === 'available_projects') {
+                renderAvailableProjects();
+            } else if (sectionId === 'my_bids') {
+                renderMyBids();
             }
         });
     });
 };
 
+/* ─── Available Projects (Contractor) ─── */
+const renderAvailableProjects = () => {
+    const main = document.querySelector('.container');
+    // Projects in bidding status
+    const available = projects.filter(p => p.status === 'bidding');
+
+    const cards = available.length === 0
+        ? `<div class="empty-state"><i class="fa-solid fa-clipboard-list"></i><h3>No Open Bids</h3><p>There are currently no projects open for bidding.</p></div>`
+        : available.map(p => `
+            <div class="avail-card" id="avail-${p.id}">
+                <div class="avail-card-header">
+                    <div>
+                        <span class="avail-bid-badge"><i class="fa-solid fa-gavel"></i> Bidding Open</span>
+                        <h3 class="avail-title">${p.title}</h3>
+                        <div class="avail-meta">
+                            <span><i class="fa-solid fa-location-dot"></i> ${p.location}</span>
+                            <span><i class="fa-solid fa-shapes"></i> ${p.category}</span>
+                            <span><i class="fa-solid fa-building-columns"></i> ${p.department}</span>
+                        </div>
+                        <p class="avail-desc">${p.description}</p>
+                    </div>
+                    <div class="avail-budget-box">
+                        <span>Max Budget</span>
+                        <strong>${formatCurrency(p.budget)}</strong>
+                    </div>
+                </div>
+
+                <button class="avail-toggle-btn" onclick="toggleBidForm('${p.id}')">
+                    <i class="fa-solid fa-file-pen"></i> Place a Bid
+                </button>
+
+                <!-- Bid Form (hidden by default) -->
+                <div class="bid-form-wrap" id="bid-form-${p.id}" style="display:none;">
+                    <h4 class="bid-form-title"><i class="fa-solid fa-pen-to-square"></i> Submit Your Bid</h4>
+                    <p class="bid-form-note">Fill in your bid details. Your wallet address and project are auto-linked.</p>
+
+                    <div class="bid-field-group">
+                        <label for="bid-wallet-${p.id}">Contractor Wallet Address <span class="required">*</span></label>
+                        <input type="text" id="bid-wallet-${p.id}" class="bid-input" placeholder="0x..." />
+                    </div>
+
+                    <div class="bid-field-group">
+                        <label for="bid-total-${p.id}">Total Bid Amount (₹) <span class="required">*</span></label>
+                        <input type="number" id="bid-total-${p.id}" class="bid-input" placeholder="e.g. 4500000" min="0" max="${p.budget}" />
+                        <small class="bid-hint">Must not exceed maximum budget of ${formatCurrency(p.budget)}</small>
+                    </div>
+
+                    <!-- Milestone Data -->
+                    <div class="bid-milestones-section">
+                        <div class="bid-milestone-header">
+                            <label>Milestone Breakdown <span class="required">*</span></label>
+                        </div>
+                        <p class="bid-hint">Your bid must cover exactly the ${p.milestones ? p.milestones.length : 0} milestones defined for this project.</p>
+
+                        <div class="milestone-col-headers">
+                            <span>Description (Fixed)</span>
+                            <span>Amount (₹)</span>
+                            <span>Deadline</span>
+                        </div>
+                        <div class="milestone-rows" id="milestone-rows-${p.id}">
+                            <!-- rows added dynamically based on project milestones -->
+                        </div>
+                    </div>
+
+                    <div class="bid-form-actions">
+                        <button class="bid-cancel-btn" onclick="toggleBidForm('${p.id}')">Cancel</button>
+                        <button class="bid-submit-btn" onclick="submitBid('${p.id}')">
+                            <i class="fa-solid fa-paper-plane"></i> Submit Bid
+                        </button>
+                    </div>
+                    <div class="bid-status-msg" id="bid-status-${p.id}"></div>
+                </div>
+            </div>
+        `).join('');
+
+    main.innerHTML = `
+        <header class="page-header">
+            <h1>Available Projects</h1>
+            <p>Projects currently open for bidding. Submit your bid with the required milestone breakdown.</p>
+        </header>
+        <div class="avail-list">${cards}</div>
+    `;
+};
+
+const toggleBidForm = (projectId) => {
+    const form = document.getElementById(`bid-form-${projectId}`);
+    if (!form) return;
+    const isHidden = form.style.display === 'none';
+    form.style.display = isHidden ? 'block' : 'none';
+    
+    const project = projects.find(p => p.id === projectId);
+    const container = document.getElementById(`milestone-rows-${projectId}`);
+    
+    if (isHidden && project && project.milestones && container.children.length === 0) {
+        project.milestones.forEach((m, idx) => {
+            addMilestoneRow(projectId, m.title || `Milestone ${idx+1}`);
+        });
+    }
+};
+
+const addMilestoneRow = (projectId, title) => {
+    const container = document.getElementById(`milestone-rows-${projectId}`);
+    if (!container) return;
+    const row = document.createElement('div');
+    row.className = 'milestone-input-row';
+    // Description is read-only as it's fixed by the project
+    row.innerHTML = `
+        <input type="text" class="bid-input ms-desc" value="${title}" readonly style="background:#f1f5f9; cursor:default;" />
+        <input type="number" class="bid-input ms-amount" placeholder="Amount" min="0" />
+        <input type="date" class="bid-input ms-deadline" />
+    `;
+    container.appendChild(row);
+};
+
+const submitBid = async (projectId) => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+
+    const walletEl = document.getElementById(`bid-wallet-${projectId}`);
+    const totalEl = document.getElementById(`bid-total-${projectId}`);
+    const milestonesEl = document.getElementById(`milestone-rows-${projectId}`);
+    const statusEl = document.getElementById(`bid-status-${projectId}`);
+
+    const wallet = walletEl?.value.trim();
+    const total = parseFloat(totalEl?.value);
+
+    // Validation
+    if (!wallet || !wallet.startsWith('0x')) {
+        statusEl.innerHTML = `<span class="bid-error"><i class="fa-solid fa-circle-exclamation"></i> Please enter a valid wallet address starting with 0x.</span>`;
+        return;
+    }
+    if (!total || total <= 0 || total > project.budget) {
+        statusEl.innerHTML = `<span class="bid-error"><i class="fa-solid fa-circle-exclamation"></i> Total bid amount must be between ₹1 and ${formatCurrency(project.budget)}.</span>`;
+        return;
+    }
+
+    const rows = milestonesEl?.querySelectorAll('.milestone-input-row') || [];
+    if (rows.length === 0) {
+        statusEl.innerHTML = `<span class="bid-error"><i class="fa-solid fa-circle-exclamation"></i> Add at least one milestone.</span>`;
+        return;
+    }
+
+    const milestoneData = [];
+    let valid = true;
+    rows.forEach((row, i) => {
+        const desc = row.querySelector('.ms-desc')?.value.trim();
+        const amount = parseFloat(row.querySelector('.ms-amount')?.value);
+        const deadline = row.querySelector('.ms-deadline')?.value;
+        if (!desc || !amount || !deadline) { valid = false; return; }
+        milestoneData.push({ description: desc, amount, deadline });
+    });
+
+    if (!valid) {
+        statusEl.innerHTML = `<span class="bid-error"><i class="fa-solid fa-circle-exclamation"></i> Fill in all milestone fields (description, amount, and deadline).</span>`;
+        return;
+    }
+
+    // Build payload matching bids table:
+    // project_id, contractor_wallet, total_amount, milestone_data
+    const payload = {
+        project_id: projectId,
+        contractor_wallet: wallet,
+        total_amount: total,
+        milestone_data: milestoneData
+    };
+
+    statusEl.innerHTML = `<span class="bid-loading"><i class="fa-solid fa-spinner fa-spin"></i> Submitting bid...</span>`;
+
+    try {
+        const API_BASE = 'http://localhost:5000';
+        const res = await fetch(`${API_BASE}/contractor/bids`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error(await res.text());
+        statusEl.innerHTML = `<span class="bid-success"><i class="fa-solid fa-circle-check"></i> Bid submitted successfully!</span>`;
+        // Reset form
+        walletEl.value = '';
+        totalEl.value = '';
+        milestonesEl.innerHTML = '';
+        // The rows will be re-added if they toggle it again or by refreshing the dashboard logic.
+        // Actually, let's just close the form
+        setTimeout(() => toggleBidForm(projectId), 2000);
+    } catch (err) {
+        statusEl.innerHTML = `<span class="bid-error"><i class="fa-solid fa-circle-exclamation"></i> ${err.message || 'Failed to submit bid.'}</span>`;
+    }
+};
+
+/* ─── My Bids (Contractor) ─── */
+const renderMyBids = () => {
+    const main = document.querySelector('.container');
+    main.innerHTML = `
+        <header class="page-header">
+            <h1>My Submitted Bids</h1>
+            <p>Track all bids you have submitted and their current status.</p>
+        </header>
+        <div class="mybids-wallet-bar">
+            <div class="mybids-input-wrap">
+                <i class="fa-solid fa-wallet"></i>
+                <input type="text" id="mybids-wallet" class="bid-input" placeholder="Enter your contractor wallet address..." />
+            </div>
+            <button class="bid-submit-btn" onclick="loadMyBids()">
+                <i class="fa-solid fa-rotate-right"></i> Load Bids
+            </button>
+        </div>
+        <div id="mybids-summary" style="display:none;" class="mybids-summary"></div>
+        <div id="mybids-list" class="mybids-list"></div>
+    `;
+};
+
+const loadMyBids = async () => {
+    const wallet = document.getElementById('mybids-wallet')?.value.trim();
+    const listEl = document.getElementById('mybids-list');
+    const summaryEl = document.getElementById('mybids-summary');
+    if (!wallet) return;
+
+    listEl.innerHTML = `<div class="bid-loading"><i class="fa-solid fa-spinner fa-spin"></i> Loading your bids...</div>`;
+    summaryEl.style.display = 'none';
+
+    try {
+        const API_BASE = 'http://localhost:5000';
+        const res = await fetch(`${API_BASE}/contractor/bids?wallet=${encodeURIComponent(wallet)}`);
+        if (!res.ok) throw new Error('Failed to fetch bids');
+        const bids = await res.json();
+
+        if (!bids.length) {
+            listEl.innerHTML = `<div class="empty-state"><i class="fa-solid fa-file-signature"></i><h3>No Bids Found</h3><p>No bids submitted from this wallet address.</p></div>`;
+            return;
+        }
+
+        const totalValue = bids.reduce((s, b) => s + Number(b.total_amount || 0), 0);
+        summaryEl.innerHTML = `
+            <div class="mybids-stat"><span>Total Bids</span><strong>${bids.length}</strong></div>
+            <div class="mybids-divider"></div>
+            <div class="mybids-stat"><span>Total Value</span><strong>${formatCurrency(totalValue)}</strong></div>
+            <div class="mybids-divider"></div>
+            <div class="mybids-stat"><span>Wallet</span><strong>${wallet.slice(0,6)}...${wallet.slice(-4)}</strong></div>
+        `;
+        summaryEl.style.display = 'flex';
+
+        listEl.innerHTML = bids.map(bid => {
+            const milestones = (() => {
+                try { return Array.isArray(bid.milestone_data) ? bid.milestone_data : JSON.parse(bid.milestone_data || '[]'); }
+                catch { return []; }
+            })();
+            const msRows = milestones.map((m, i) => `
+                <div class="mybids-ms-row">
+                    <span class="mybids-ms-num">${i+1}</span>
+                    <span>${m.description || m.desc || '—'}</span>
+                    <span>${formatCurrency(m.amount || m.budget || 0)}</span>
+                    <span>${m.deadline ? new Date(m.deadline).toLocaleDateString('en-IN') : '—'}</span>
+                </div>
+            `).join('');
+
+            return `
+                <div class="mybids-card">
+                    <div class="mybids-card-top">
+                        <div>
+                            <span class="bidId-tag">BID #${(bid.id||'').slice(0,8).toUpperCase()}</span>
+                            <h3>${bid.project_title || 'Project'}</h3>
+                            <p style="color:var(--text-secondary); font-size:0.875rem; margin:0.25rem 0 0;">${bid.project_description || ''}</p>
+                        </div>
+                        <div class="mybids-amount-box">
+                            <span>Total Amount</span>
+                            <strong>${formatCurrency(bid.total_amount)}</strong>
+                        </div>
+                    </div>
+                    <div class="mybids-meta-row">
+                        <span><i class="fa-regular fa-calendar"></i> Submitted: ${new Date(bid.created_at).toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'})}</span>
+                        <span><i class="fa-solid fa-list-check"></i> ${milestones.length} Milestones</span>
+                    </div>
+                    ${milestones.length > 0 ? `
+                        <div class="mybids-ms-table">
+                            <div class="mybids-ms-header">
+                                <span>#</span><span>Description</span><span>Amount</span><span>Deadline</span>
+                            </div>
+                            ${msRows}
+                        </div>` : ''}
+                </div>
+            `;
+        }).join('');
+
+    } catch(err) {
+        listEl.innerHTML = `<div class="bid-error" style="margin-top:1rem;"><i class="fa-solid fa-circle-exclamation"></i> ${err.message}</div>`;
+    }
+};
+
 // Init
 document.addEventListener('DOMContentLoaded', () => {
+    // Capture the initial structure of the home view
+    homeTemplate = document.querySelector('.container').innerHTML;
+
     initSidebar();
     initMap();
     initLocationAutocomplete();
