@@ -1,0 +1,299 @@
+"use client";
+
+import { useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { ethers } from "ethers";
+import { API_BASE } from "@/lib/backend";
+import MetaMaskConnect from "@/components/wallet/MetaMaskConnect";
+import styles from "./CreateProjectForm.module.css";
+
+const DEFAULT_LEDGER = "/dashboard?role=government";
+
+export default function CreateProjectForm({ ledgerHref = DEFAULT_LEDGER } = {}) {
+  const router = useRouter();
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [locationAddress, setLocationAddress] = useState("");
+  const [locationLat, setLocationLat] = useState("");
+  const [locationLng, setLocationLng] = useState("");
+  const [biddingDeadlineLocal, setBiddingDeadlineLocal] = useState("");
+  const [maximumBidAmount, setMaximumBidAmount] = useState("");
+  const [governmentWallet, setGovernmentWallet] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const [fieldErrors, setFieldErrors] = useState({});
+
+  const syncWalletFromMetaMask = useCallback(async () => {
+    setError("");
+    if (typeof window === "undefined" || !window.ethereum) {
+      setError("Install MetaMask to load your government wallet address.");
+      return;
+    }
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      await provider.send("eth_requestAccounts", []);
+      const signer = await provider.getSigner();
+      setGovernmentWallet(await signer.getAddress());
+    } catch (e) {
+      setError(e?.shortMessage || e?.message || "Could not read wallet");
+    }
+  }, []);
+
+  function validate() {
+    const fe = {};
+    if (!title.trim()) fe.title = "Title is required.";
+    if (!locationAddress.trim()) fe.locationAddress = "Address is required.";
+    const lat = Number(locationLat);
+    const lng = Number(locationLng);
+    if (!Number.isFinite(lat)) fe.locationLat = "Valid latitude required.";
+    else if (lat < -90 || lat > 90) fe.locationLat = "Latitude must be between -90 and 90.";
+    if (!Number.isFinite(lng)) fe.locationLng = "Valid longitude required.";
+    else if (lng < -180 || lng > 180) fe.locationLng = "Longitude must be between -180 and 180.";
+    if (!biddingDeadlineLocal) fe.biddingDeadline = "Bidding deadline is required.";
+    const maxBid = Number(maximumBidAmount);
+    if (!Number.isFinite(maxBid) || maxBid <= 0) {
+      fe.maximumBidAmount = "Enter a positive maximum bid amount.";
+    }
+    if (!governmentWallet.trim()) {
+      fe.governmentWallet = "Connect MetaMask or paste a valid government wallet address.";
+    } else if (!/^0x[a-fA-F0-9]{40}$/.test(governmentWallet.trim())) {
+      fe.governmentWallet = "Must be a 0x-prefixed 40-hex Ethereum address.";
+    }
+    setFieldErrors(fe);
+    return Object.keys(fe).length === 0;
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    if (!validate()) return;
+
+    setSubmitting(true);
+    try {
+      const deadlineIso = new Date(biddingDeadlineLocal).toISOString();
+      const res = await fetch(`${API_BASE}/projects/create`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: title.trim(),
+          description: description.trim(),
+          location: {
+            address: locationAddress.trim(),
+            lat: Number(locationLat),
+            lng: Number(locationLng)
+          },
+          biddingDeadline: deadlineIso,
+          maximumBidAmount: Number(maximumBidAmount),
+          governmentWallet: governmentWallet.trim()
+        })
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || `Request failed (${res.status})`);
+        return;
+      }
+
+      setSuccess("Project created. Redirecting to the ledger…");
+      setTimeout(() => router.push(ledgerHref), 1200);
+    } catch (err) {
+      setError(err.message || "Could not reach the server.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <form className={styles.form} onSubmit={handleSubmit} noValidate>
+      {error ? <div className={styles.errorBanner}>{error}</div> : null}
+      {success ? <div className={styles.successBanner}>{success}</div> : null}
+
+      <div className={styles.sectionTitle}>Project details</div>
+
+      <div className={styles.group}>
+        <label className={styles.label} htmlFor="cf-title">
+          Title
+        </label>
+        <input
+          id="cf-title"
+          className={styles.input}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="e.g. District road resurfacing — Phase 2"
+          disabled={submitting}
+        />
+        {fieldErrors.title ? (
+          <span className={styles.fieldError}>{fieldErrors.title}</span>
+        ) : null}
+      </div>
+
+      <div className={styles.group}>
+        <label className={styles.label} htmlFor="cf-desc">
+          Description
+        </label>
+        <textarea
+          id="cf-desc"
+          className={styles.textarea}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Scope, objectives, and any evaluation criteria for bidders."
+          disabled={submitting}
+        />
+      </div>
+
+      <div className={styles.sectionTitle}>Location</div>
+      <p className={styles.hint}>
+        Paste coordinates from your map app (decimal degrees). Address is stored for display and search.
+      </p>
+
+      <div className={styles.group}>
+        <label className={styles.label} htmlFor="cf-address">
+          Address / area label
+        </label>
+        <input
+          id="cf-address"
+          className={styles.input}
+          value={locationAddress}
+          onChange={(e) => setLocationAddress(e.target.value)}
+          placeholder="e.g. Block 4, Indiranagar, Bengaluru"
+          disabled={submitting}
+        />
+        {fieldErrors.locationAddress ? (
+          <span className={styles.fieldError}>{fieldErrors.locationAddress}</span>
+        ) : null}
+      </div>
+
+      <div className={styles.row2}>
+        <div className={styles.group}>
+          <label className={styles.label} htmlFor="cf-lat">
+            Latitude
+          </label>
+          <input
+            id="cf-lat"
+            className={styles.input}
+            inputMode="decimal"
+            value={locationLat}
+            onChange={(e) => setLocationLat(e.target.value)}
+            placeholder="12.9716"
+            disabled={submitting}
+          />
+          {fieldErrors.locationLat ? (
+            <span className={styles.fieldError}>{fieldErrors.locationLat}</span>
+          ) : null}
+        </div>
+        <div className={styles.group}>
+          <label className={styles.label} htmlFor="cf-lng">
+            Longitude
+          </label>
+          <input
+            id="cf-lng"
+            className={styles.input}
+            inputMode="decimal"
+            value={locationLng}
+            onChange={(e) => setLocationLng(e.target.value)}
+            placeholder="77.5946"
+            disabled={submitting}
+          />
+          {fieldErrors.locationLng ? (
+            <span className={styles.fieldError}>{fieldErrors.locationLng}</span>
+          ) : null}
+        </div>
+      </div>
+
+      <div className={styles.sectionTitle}>Bidding & budget</div>
+
+      <div className={styles.group}>
+        <label className={styles.label} htmlFor="cf-deadline">
+          Bidding deadline
+        </label>
+        <input
+          id="cf-deadline"
+          type="datetime-local"
+          className={styles.input}
+          value={biddingDeadlineLocal}
+          onChange={(e) => setBiddingDeadlineLocal(e.target.value)}
+          disabled={submitting}
+        />
+        {fieldErrors.biddingDeadline ? (
+          <span className={styles.fieldError}>{fieldErrors.biddingDeadline}</span>
+        ) : null}
+      </div>
+
+      <div className={styles.group}>
+        <label className={styles.label} htmlFor="cf-max">
+          Maximum bid amount (INR)
+        </label>
+        <input
+          id="cf-max"
+          type="number"
+          className={styles.input}
+          min={0}
+          step="0.01"
+          value={maximumBidAmount}
+          onChange={(e) => setMaximumBidAmount(e.target.value)}
+          placeholder="e.g. 2500000"
+          disabled={submitting}
+        />
+        <p className={styles.hint}>
+          Upper bound contractors may bid under; stored as numeric on the project record.
+        </p>
+        {fieldErrors.maximumBidAmount ? (
+          <span className={styles.fieldError}>{fieldErrors.maximumBidAmount}</span>
+        ) : null}
+      </div>
+
+      <div className={styles.sectionTitle}>Government wallet</div>
+      <p className={styles.hint}>
+        Must match the wallet you use on-chain for this ministry. Pulled from MetaMask when you connect.
+      </p>
+
+      <div className={styles.walletRow}>
+        <MetaMaskConnect onAccountChange={setGovernmentWallet} />
+        <button
+          type="button"
+          className={styles.secondary}
+          onClick={syncWalletFromMetaMask}
+          disabled={submitting}
+        >
+          Refresh from MetaMask
+        </button>
+      </div>
+
+      <div className={styles.group}>
+        <label className={styles.label} htmlFor="cf-wallet">
+          Government wallet (0x…)
+        </label>
+        <input
+          id="cf-wallet"
+          className={styles.input}
+          value={governmentWallet}
+          onChange={(e) => setGovernmentWallet(e.target.value.trim())}
+          placeholder="0x…"
+          autoComplete="off"
+          spellCheck={false}
+          disabled={submitting}
+        />
+        {fieldErrors.governmentWallet ? (
+          <span className={styles.fieldError}>{fieldErrors.governmentWallet}</span>
+        ) : null}
+      </div>
+
+      <div className={styles.actions}>
+        <button type="submit" className={styles.submit} disabled={submitting}>
+          {submitting ? "Creating…" : "Create project"}
+        </button>
+        <Link
+          href={ledgerHref}
+          className={styles.secondary}
+          style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }}
+        >
+          Cancel
+        </Link>
+      </div>
+    </form>
+  );
+}
