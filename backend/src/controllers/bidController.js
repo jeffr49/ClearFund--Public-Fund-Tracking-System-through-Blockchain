@@ -69,10 +69,8 @@ function buildBidMilestonePayload(incoming, templateSorted) {
   return { lines: out, sum };
 }
 
-<<<<<<< HEAD
 const { generateBidId } = require("../utils/idGenerator");
 
-=======
 // =========================
 // GET PROJECT BIDS
 // =========================
@@ -119,7 +117,6 @@ exports.getProjectBids = async (req, res) => {
 // =========================
 // SUBMIT BID
 // =========================
->>>>>>> bba4041f649282b35316ae3961a5cbec9fb05814
 exports.submitBid = async (req, res) => {
   try {
     const { projectId, totalAmount, milestones, wallet } = req.body;

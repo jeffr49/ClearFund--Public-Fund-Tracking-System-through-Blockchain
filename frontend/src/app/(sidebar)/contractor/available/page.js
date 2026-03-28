@@ -22,7 +22,7 @@ export default function AvailableProjectsPage() {
     style: "currency",
     currency: "INR",
     maximumFractionDigits: 0
-  }).format(n);
+  }).format(n || 0);
 
   useEffect(() => {
     // 1. Get Wallet from Session
@@ -64,18 +64,33 @@ export default function AvailableProjectsPage() {
     }
     setActiveBidForm(p.id);
 
-    const mData = (p.milestones || []).map((m) => ({
-      milestone_index: m.milestone_index,
-      title: m.title,
-      description: m.description,
-      amount: "",
-      deadline: m.deadline ? m.deadline.split('T')[0] : ""
-    }));
+    // Fix: Format project deadline for Date input
+    const projDeadline = p.deadline ? new Date(p.deadline).toISOString().split("T")[0] : "";
+
+    const mData = (p.milestones || []).map((m, idx, arr) => {
+      // Use teammate's provided deadline if exists, or our project-level lock for the last row
+      let d = m.deadline ? m.deadline.split('T')[0] : "";
+      if (idx === arr.length - 1 && projDeadline) {
+        d = projDeadline;
+      }
+
+      return {
+        milestone_index: m.milestone_index,
+        title: m.title,
+        description: m.description,
+        amount: "",
+        deadline: d,
+        isFixedDeadline: idx === arr.length - 1 && !!projDeadline
+      };
+    });
     setBidPayload({ ...bidPayload, milestones: mData, total: "" });
     setSubmissionStatus({});
   };
 
   const handleMilestoneChange = (idx, field, value) => {
+    // Prevent manual edits to fixed deadlines
+    if (field === "deadline" && bidPayload.milestones[idx].isFixedDeadline) return;
+
     const newMs = [...bidPayload.milestones];
     newMs[idx][field] = value;
     setBidPayload({ ...bidPayload, milestones: newMs });
@@ -109,7 +124,6 @@ export default function AvailableProjectsPage() {
       return;
     }
 
-    // Verify milestone sum (optional but good UX)
     const msSum = milestones.reduce((s, m) => s + Number(m.amount), 0);
     if (Math.abs(msSum - Number(total)) > 0.01) {
       setSubmissionStatus({ error: `Milestone sum (${formatInr(msSum)}) must match total bid (${formatInr(total)}).` });
@@ -307,9 +321,17 @@ export default function AvailableProjectsPage() {
                                 className="bid-input"
                                 value={ms.deadline}
                                 onChange={(e) => handleMilestoneChange(idx, "deadline", e.target.value)}
-                                readOnly={idx === bidPayload.milestones.length - 1} // Lock the final milestone
-                                style={{ border: "1px solid var(--border-color)", padding: "10px", borderRadius: "8px", fontSize: "0.9rem", height: "fit-content", background: idx === bidPayload.milestones.length - 1 ? "var(--bg-color)" : "transparent" }}
-                                title={idx === bidPayload.milestones.length - 1 ? "This final milestone deadline is explicitly locked by the Government." : ""}
+                                readOnly={ms.isFixedDeadline}
+                                style={{ 
+                                  border: "1px solid var(--border-color)", 
+                                  padding: "10px", 
+                                  borderRadius: "8px", 
+                                  fontSize: "0.9rem", 
+                                  height: "fit-content",
+                                  background: ms.isFixedDeadline ? "var(--bg-secondary)" : "white",
+                                  cursor: ms.isFixedDeadline ? "not-allowed" : "text",
+                                  opacity: ms.isFixedDeadline ? 0.8 : 1
+                                }}
                               />
                             </div>
                           ))}
@@ -348,4 +370,3 @@ export default function AvailableProjectsPage() {
     </SidebarLayout>
   );
 }
-

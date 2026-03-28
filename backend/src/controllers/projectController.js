@@ -208,6 +208,7 @@ exports.getProjectsOverview = async (req, res) => {
         funds_released_inr: releasedInr.toString(),
         contract_address: p.contract_address,
         contractor_wallet: p.contractor_wallet,
+        deadline: p.deadline,
         total_milestones: totalMs,
         completed_milestones: completedDisplay,
         current_phase: currentPhase,
