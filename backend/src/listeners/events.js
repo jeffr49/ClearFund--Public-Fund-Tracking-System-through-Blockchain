@@ -154,6 +154,21 @@ exports.listenToProject = (projectId, contractAddress) => {
 
       if (eventKey) seenEventKeys.add(eventKey);
 
+      const numId = Number(milestoneId);
+      const { error: updErr1 } = await supabase
+        .from("milestones")
+        .update({ status: 'completed' })
+        .eq("project_id", projectId)
+        .eq("milestone_index", numId);
+      if (updErr1) console.error("Error updating milestone to completed:", updErr1);
+
+      const { error: updErr2 } = await supabase
+        .from("milestones")
+        .update({ status: 'working' })
+        .eq("project_id", projectId)
+        .eq("milestone_index", numId + 1);
+      if (updErr2) console.error("Error updating next milestone to working:", updErr2);
+
     } catch (err) {
       console.error("FundsReleased error:", err);
     }
@@ -181,6 +196,14 @@ exports.listenToProject = (projectId, contractAddress) => {
       });
 
       if (eventKey) seenEventKeys.add(eventKey);
+
+      const newD = new Date(Number(newDeadline) * 1000).toISOString();
+      const { error: updErr3 } = await supabase
+        .from("milestones")
+        .update({ status: 'deadline_extended', deadline: newD })
+        .eq("project_id", projectId)
+        .eq("milestone_index", Number(milestoneId));
+      if (updErr3) console.error("Error extending deadline:", updErr3);
 
     } catch (err) {
       console.error("DeadlineExtended error:", err);

@@ -63,19 +63,45 @@ export default function MilestoneCard({
     milestone.title?.trim() ||
     milestone.description?.trim() ||
     `Milestone ${milestone.index}`;
+
+  const getStatusInfo = (s) => {
+    switch (s) {
+      case "yet_to_start": return { label: "Yet to Start", bg: "#f1f5f9", color: "#64748b" };
+      case "working": return { label: "In Progress", bg: "#e0f2fe", color: "#0284c7" };
+      case "completed": return { label: "Completed", bg: "#dcfce7", color: "#16a34a" };
+      case "deadline_extended": return { label: "Deadline Extended", bg: "#fef3c7", color: "#d97706" };
+      default: return { label: s || "Pending", bg: "#f1f5f9", color: "#64748b" };
+    }
+  };
+  const statusInfo = getStatusInfo(milestone.status);
   const deadlineLabel =
     milestone.deadline &&
-    !Number.isNaN(new Date(milestone.deadline).getTime())
+      !Number.isNaN(new Date(milestone.deadline).getTime())
       ? new Date(milestone.deadline).toLocaleDateString("en-IN")
       : "—";
 
   return (
     <div className={styles.milestoneCard}>
       <div className={styles.milestoneRow}>
-        <h4>
-          #{milestone.index + 1} · {label}
-        </h4>
-        <span className={styles.status}>{milestone.status}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <h4>
+            #{milestone.index + 1} · {label}
+          </h4>
+          <span
+            style={{
+              background: statusInfo.bg,
+              color: statusInfo.color,
+              padding: "4px 10px",
+              borderRadius: "12px",
+              fontSize: "0.75rem",
+              fontWeight: "800",
+              textTransform: "uppercase",
+              border: `1px solid ${statusInfo.color}30`
+            }}
+          >
+            {statusInfo.label}
+          </span>
+        </div>
       </div>
       {milestone.title && milestone.description ? (
         <p className={styles.meta}>{milestone.description}</p>
