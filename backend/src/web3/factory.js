@@ -3,18 +3,22 @@ const supabase = require("../db/supabaseClient");
 
 const factoryAbi = require("../../abi/Factory.json");
 
-if (!process.env.RPC_URL || !process.env.PRIVATE_KEY || !process.env.FACTORY_ADDRESS) {
-  throw new Error("Missing RPC_URL, PRIVATE_KEY, or FACTORY_ADDRESS");
+const RPC_URL = process.env.RPC_URL || process.env.ALCHEMY_URL;
+const PRIVATE_KEY = process.env.PRIVATE_KEY;
+const FACTORY_ADDRESS = process.env.FACTORY_ADDRESS;
+
+if (!RPC_URL || !PRIVATE_KEY || !FACTORY_ADDRESS) {
+  throw new Error("Missing RPC_URL (or ALCHEMY_URL), PRIVATE_KEY, or FACTORY_ADDRESS");
 }
 
 // Provider + Wallet
-const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
-const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+const provider = new ethers.JsonRpcProvider(RPC_URL);
+const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
 
 // Contract instance
 const factory = new ethers.Contract(
-  process.env.FACTORY_ADDRESS,
-  factoryAbi,
+  FACTORY_ADDRESS,
+  factoryAbi.abi,
   wallet
 );
 

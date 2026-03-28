@@ -1,58 +1,54 @@
-const pool = require("../db/client");
+const supabase = require("../db/supabaseClient");
 
 exports.getSignerTasks = async (req, res) => {
   try {
     const wallet = req.query.wallet;
 
-    // FIXED: use ANY for ARRAY column
-    const projRes = await pool.query(
-      "SELECT project_id FROM project_approvers WHERE $1 = ANY(wallet_address)",
-      [wallet]
-    );
+    // 1. Fetch project IDs where wallet is in the wallet_address array
+    const { data: projData, error: projError } = await supabase
+      .from("project_approvers")
+      .select("project_id")
+      .contains("wallet_address", [wallet]);
 
-    const projectIds = projRes.rows.map(p => p.project_id);
+    if (projError) throw projError;
+    const projectIds = projData.map(p => p.project_id);
 
     if (projectIds.length === 0) return res.json([]);
 
-    const eventsRes = await pool.query(
-      `
-      SELECT 
-        e.*,
-        p.title,
-        m.description
-      FROM events e
-      JOIN projects p ON p.id = e.project_id
-      JOIN milestones m 
-        ON m.project_id = e.project_id 
-        AND m.milestone_index = e.milestone_id
-      WHERE e.project_id = ANY($1)
-      AND e.event_type = 'PROOF_SUBMITTED'
-      `,
-      [projectIds]
-    );
+    // 2. Fetch pending tasks (PROOF_SUBMITTED)
+    const { data: eventsData, error: eventsError } = await supabase
+      .from("events")
+      .select(`
+        *,
+        projects ( title ),
+        milestones!events_milestone_id_fkey ( description )
+      `)
+      .in("project_id", projectIds)
+      .eq("event_type", "PROOF_SUBMITTED");
 
-    const votedRes = await pool.query(
-      `
-      SELECT project_id, milestone_id 
-      FROM events 
-      WHERE actor=$1 
-      AND event_type IN ('MILESTONE_APPROVED','MILESTONE_REJECTED')
-      `,
-      [wallet]
-    );
+    if (eventsError) throw eventsError;
+
+    // 3. Check for already voted tasks
+    const { data: votedData, error: votedError } = await supabase
+      .from("events")
+      .select("project_id, milestone_id")
+      .eq("actor", wallet)
+      .in("event_type", ["MILESTONE_APPROVED", "MILESTONE_REJECTED"]);
+
+    if (votedError) throw votedError;
 
     const votedSet = new Set(
-      votedRes.rows.map(r => `${r.project_id}-${r.milestone_id}`)
+      votedData.map(r => `${r.project_id}-${r.milestone_id}`)
     );
 
-    const tasks = eventsRes.rows
+    const tasks = eventsData
       .filter(e => !votedSet.has(`${e.project_id}-${e.milestone_id}`))
       .map(e => ({
         id: e.id,
-        project_title: e.title,
+        project_title: e.projects?.title || "Unknown",
         contract_address: e.contract_address,
         milestone_id: e.milestone_id,
-        description: e.description,
+        description: e.milestones?.description || "No description",
         ipfsHash: e.metadata?.ipfsHash || null
       }));
 

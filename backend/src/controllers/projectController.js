@@ -10,7 +10,8 @@ exports.createProject = async (req, res) => {
       description,
       location,
       biddingDeadline,
-      maximumBidAmount
+      maximumBidAmount,
+      governmentWallet
     } = req.body;
 
     const { data, error } = await supabase
@@ -22,8 +23,9 @@ exports.createProject = async (req, res) => {
           location_lat: location.lat,
           location_lng: location.lng,
           location_address: location.address,
+          government_wallet: governmentWallet,
           bidding_deadline: biddingDeadline,
-          maximum_bid_amount: maximumBidAmount,
+          maximumBidAmount: maximumBidAmount,
           status: "bidding"
         }
       ])

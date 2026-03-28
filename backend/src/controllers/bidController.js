@@ -21,7 +21,7 @@ exports.submitBid = async (req, res) => {
     // Fetch project
     const { data: project, error: projectError } = await supabase
       .from("projects")
-      .select("maximum_bid_amount")
+      .select('"maximumBidAmount"')
       .eq("id", projectId)
       .single();
 
@@ -30,7 +30,7 @@ exports.submitBid = async (req, res) => {
     }
 
     // Validate max bid
-    if (totalAmount > project.maximum_bid_amount) {
+    if (totalAmount > project.maximumBidAmount) {
       return res.status(400).json({ error: "Bid too high" });
     }
 
