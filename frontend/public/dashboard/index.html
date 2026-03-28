@@ -26,10 +26,30 @@
             <div class="logo">
                 <i class="fa-solid fa-link"></i> ClearFund
             </div>
-            <div class="nav-controls">
-                <div class="search-bar">
-                    <i class="fa-solid fa-search"></i>
-                    <input type="text" id="searchInput" placeholder="Search projects by name or keyword...">
+
+            <div class="search-bar center-search">
+                <i class="fa-solid fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Search projects by name or keyword...">
+            </div>
+
+            <div class="profile-dropdown" id="profileDropdown">
+                <button class="profile-btn" id="profileBtn">
+                    <div class="avatar-circle">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                    <span>Profile</span>
+                    <i class="fa-solid fa-chevron-down"></i>
+                </button>
+                <div class="dropdown-menu" id="dropdownMenu">
+                    <div class="dropdown-header">user@gov.in</div>
+                    <div class="divider"></div>
+                    <a href="#" class="dropdown-item">
+                        <i class="fa-solid fa-id-card"></i> View Profile
+                    </a>
+                    <div class="divider"></div>
+                    <a href="/" class="dropdown-item sign-out">
+                        <i class="fa-solid fa-right-from-bracket"></i> Sign Out
+                    </a>
                 </div>
             </div>
         </div>
