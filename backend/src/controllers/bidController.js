@@ -70,6 +70,49 @@ function buildBidMilestonePayload(incoming, templateSorted) {
 }
 
 // =========================
+// GET PROJECT BIDS
+// =========================
+exports.getProjectBids = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+
+    // We will fetch bids and then map contractor names
+    const { data: bids, error: bidsError } = await supabase
+      .from("bids")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("total_amount", { ascending: true });
+
+    if (bidsError) throw bidsError;
+
+    // Get unique contractor wallets
+    const wallets = (bids || []).map((b) => b.contractor_wallet).filter(Boolean);
+
+    let usersMap = {};
+    if (wallets.length > 0) {
+      const { data: users, error: usersError } = await supabase
+        .from("users")
+        .select("wallet_address, name")
+        .in("wallet_address", wallets);
+
+      if (!usersError && users) {
+        users.forEach(u => { usersMap[u.wallet_address] = u.name; });
+      }
+    }
+
+    const enriched = (bids || []).map(b => ({
+      ...b,
+      contractor_name: usersMap[b.contractor_wallet] || "Unknown Contractor"
+    }));
+
+    res.json(enriched);
+  } catch (err) {
+    console.error("Failed to fetch project bids", err);
+    res.status(500).json({ error: "Failed to fetch project bids" });
+  }
+};
+
+// =========================
 // SUBMIT BID
 // =========================
 exports.submitBid = async (req, res) => {
