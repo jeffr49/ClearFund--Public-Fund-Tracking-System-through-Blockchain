@@ -1,6 +1,7 @@
 const { listenToProject } = require("../listeners/events");
 const supabase = require("../db/supabaseClient");
 const { deployProject } = require("../web3/factory");
+const { generateBidId } = require("../utils/idGenerator");
 
 function sortTemplate(rows) {
   return [...(rows || [])].sort(
@@ -69,7 +70,6 @@ function buildBidMilestonePayload(incoming, templateSorted) {
   return { lines: out, sum };
 }
 
-const { generateBidId } = require("../utils/idGenerator");
 
 // =========================
 // GET PROJECT BIDS
