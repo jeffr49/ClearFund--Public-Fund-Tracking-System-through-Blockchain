@@ -1,0 +1,141 @@
+.container {
+  padding: 24px;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f4f6fa 0%, #ffffff 100%);
+}
+
+.header {
+  margin-bottom: 18px;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 28px;
+  color: #1e293b;
+}
+
+.header p {
+  margin: 6px 0 0;
+  color: #475569;
+  font-size: 14px;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+  margin-bottom: 20px;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+  padding: 16px;
+  min-height: 90px;
+}
+
+.card h3 {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.card span {
+  display: block;
+  margin-top: 8px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.button {
+  border: none;
+  cursor: pointer;
+  border-radius: 8px;
+  font-weight: 600;
+  color: white;
+  background: #334155;
+  padding: 10px 14px;
+  transition: all 0.2s ease;
+}
+
+.button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: #1e293b;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tableWrapper {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+  padding: 16px;
+}
+
+.tableWrapper h2 {
+  margin: 0 0 10px;
+  color: #0f172a;
+}
+
+.tableScroll {
+  width: 100%;
+  overflow: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1020px;
+}
+
+.table th,
+.table td {
+  border: 1px solid #e2e8f0;
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 13px;
+}
+
+.table th {
+  background: #f8fafc;
+  color: #334155;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.table tbody tr:hover {
+  background: #f1f5f9;
+}
+
+.loading,
+.error {
+  margin-top: 24px;
+  color: #334155;
+  font-weight: 600;
+}
+
+@media (max-width: 860px) {
+  .cards {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+  .table {
+    min-width: 830px;
+  }
+}

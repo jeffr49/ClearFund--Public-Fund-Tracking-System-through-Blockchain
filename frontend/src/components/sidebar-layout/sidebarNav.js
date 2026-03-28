@@ -4,7 +4,7 @@ export const SIDEBAR_NAV = {
     { href: "/gov/create", label: "Create Project" },
     { href: "/gov/bids", label: "Manage Bids" },
     { href: "/gov/assign", label: "Assign Approvers" },
-    { href: "/dashboard?role=government", label: "Project Status" }
+    { href: "/gov/status", label: "Project Status" }
   ],
   contractor: [
     { href: "/dashboard?role=contractor", label: "Home" },
