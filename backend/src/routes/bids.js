@@ -3,8 +3,12 @@ const router = require("express").Router();
 const {
   submitBid,
   selectBid,
-  getMyBids
+  getMyBids,
+  getProjectBids
 } = require("../controllers/bidController");
+
+// Get project bids
+router.get("/project/:projectId", getProjectBids);
 
 // Submit bid
 router.post("/submit", submitBid);

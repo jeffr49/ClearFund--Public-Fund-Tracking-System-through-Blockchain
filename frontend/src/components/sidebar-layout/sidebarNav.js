@@ -2,12 +2,9 @@ export const SIDEBAR_NAV = {
   government: [
     { href: "/dashboard?role=government", label: "Home" },
     { href: "/gov/create", label: "Create Project" },
-    { label: "Manage Bids", soon: true },
-    { label: "Assign Approvers", soon: true },
-    { label: "Fund Escrow", soon: true },
-    { label: "Milestone Setup", soon: true },
-    { label: "Project Status", soon: true },
-    { label: "Audit Logs", soon: true }
+    { href: "/gov/bids", label: "Manage Bids" },
+    { href: "/gov/assign", label: "Assign Approvers" },
+    { href: "/dashboard?role=government", label: "Project Status" }
   ],
   contractor: [
     { href: "/dashboard?role=contractor", label: "Home" },
