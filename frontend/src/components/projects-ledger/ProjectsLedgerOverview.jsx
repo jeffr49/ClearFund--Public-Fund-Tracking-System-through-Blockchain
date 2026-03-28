@@ -296,7 +296,26 @@ export default function ProjectsLedgerOverview({
     return result;
   }, [raw, search, statusFilter, stateFilter, budgetFilter, budgetMax, sortBy, resolvedStates]);
 
-  const stats = raw?.stats;
+  const filteredStats = useMemo(() => {
+    if (!raw) return null;
+    const list = filteredProjects;
+    const totalBudget = list.reduce((sum, p) => sum + (Number(p.maximum_bid_amount) || 0), 0);
+    const totalFundsReleased = list.reduce((sum, p) => sum + BigInt(p.funds_released_inr || "0"), 0n);
+    const ongoing = list.filter(p => p.display_status === "ongoing").length;
+    const bidding = list.filter(p => p.display_status === "bidding").length;
+    const completed = list.filter(p => p.display_status === "completed").length;
+
+    return {
+      total_projects: list.length,
+      total_budget: totalBudget,
+      funds_released_inr: totalFundsReleased.toString(),
+      ongoing,
+      bidding,
+      completed
+    };
+  }, [filteredProjects, raw]);
+
+  const stats = filteredStats || raw?.stats;
   const budgetChipActive = budgetFilter !== null && budgetMax !== null && budgetFilter < budgetMax;
   const activeFilterCount = [statusFilter, stateFilter, sortBy, budgetChipActive ? "budget" : ""].filter(Boolean).length;
 
@@ -331,7 +350,7 @@ export default function ProjectsLedgerOverview({
         </div>
 
         {/* ─── Filter Bar ─── */}
-        <div className="filters-bar">
+        <div className="filters-bar" style={{ minHeight: "64px", display: "flex", alignItems: "center" }}>
           <div className="filter-container">
 
             {/* Status Filter */}
