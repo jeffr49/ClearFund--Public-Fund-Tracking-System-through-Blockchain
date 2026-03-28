@@ -10,9 +10,7 @@ export const SIDEBAR_NAV = {
     { href: "/dashboard?role=contractor", label: "Home" },
     { href: "/contractor/available", label: "Available Projects" },
     { href: "/contractor/bids", label: "My Bids" },
-    { label: "Workdesk", soon: true },
-    { href: "/contractor/proofs", label: "Submit Proof" },
-    { label: "Payments", soon: true },
+    { href: "/contractor/proofs", label: "Execution" },
     { href: "/contractor/stats", label: "Stats" }
   ],
   approver: [
