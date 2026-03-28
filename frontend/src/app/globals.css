@@ -1,51 +1,76 @@
 /* ============================================
-   ClearFund Design System
-   Clean fintech-style theme
+   ClearFund Design System — Industrial Skeuomorphism
+   Tactile precision. Mechanical reliability.
    ============================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
-/* --- Design Tokens --- */
+/* --- Design Tokens (Industrial Palette) --- */
 :root {
-  --bg-primary: #F8FAFC;
-  --bg-card: #FFFFFF;
-  --border-color: #E2E8F0;
+  /* Background / Material Layers */
+  --bg-primary: #e0e5ec;        /* Chassis — matte ABS plastic base */
+  --bg-card: #e8ecf1;           /* Panel surface — slightly recessed */
+  --bg-foreground: #f0f2f5;     /* Raised panel surface */
+  --bg-secondary: #d1d9e6;      /* Recessed / muted slots */
 
-  --text-primary: #0F172A;
-  --text-secondary: #64748B;
-  --text-muted: #94A3B8;
+  /* Border / Shadow Pair (Neumorphic) */
+  --border-color: #babecc;      /* Shadow side of neumorphic pair */
+  --border-light: #ffffff;      /* Highlight side */
+  --border-dark: #a3b1c6;       /* Deep shadow / dividers */
 
-  --accent-primary: #2563EB;
-  --accent-hover: #1D4ED8;
-  --accent-light: #DBEAFE;
-  --accent-glow: rgba(37, 99, 235, 0.25);
+  /* Text */
+  --text-primary: #2d3436;      /* Dark charcoal ink */
+  --text-secondary: #4a5568;    /* Slate — labels, metadata */
+  --text-muted: #636e72;        /* Dim annotations */
 
-  --success: #10B981;
-  --error: #EF4444;
-  --error-bg: #FEF2F2;
-  --error-border: #FECACA;
-  --warning: #F59E0B;
+  /* Accent — "Safety Orange / Braun Red" */
+  --accent-primary: #ff4757;
+  --accent-hover: #e03e4e;
+  --accent-light: rgba(255, 71, 87, 0.12);
+  --accent-glow: rgba(255, 71, 87, 0.45);
 
-  --radius-sm: 8px;
-  --radius-md: 12px;
+  /* Status colours — slightly muted to match industrial palette */
+  --success: #27ae60;
+  --error: #ff4757;
+  --error-bg: rgba(255, 71, 87, 0.08);
+  --error-border: rgba(255, 71, 87, 0.25);
+  --warning: #f39c12;
+
+  /* Status indicators (project states) */
+  --status-ongoing: #2980b9;
+  --status-bidding: #ff4757;
+  --status-completed: #27ae60;
+  --status-notstarted: #95a5a6;
+
+  /* Radius scale — injection-moulded curves */
+  --radius-sm: 4px;
+  --radius-md: 8px;
   --radius-lg: 16px;
   --radius-xl: 24px;
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.08);
-  --shadow-xl: 0 12px 48px rgba(0, 0, 0, 0.1);
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 6px 24px rgba(0, 0, 0, 0.06);
+  /* Neumorphic Shadow System */
+  --shadow-sm:       4px 4px 8px #babecc, -4px -4px 8px #ffffff;
+  --shadow-md:       6px 6px 12px #babecc, -6px -6px 12px #ffffff;
+  --shadow-lg:       8px 8px 16px #babecc, -8px -8px 16px #ffffff;
+  --shadow-xl:       12px 12px 24px #babecc, -12px -12px 24px #ffffff;
+  --shadow-card:     8px 8px 16px #babecc, -8px -8px 16px #ffffff;
+  --shadow-floating: 12px 12px 24px #babecc, -12px -12px 24px #ffffff, inset 1px 1px 0 rgba(255,255,255,0.5);
+  --shadow-pressed:  inset 6px 6px 12px #babecc, inset -6px -6px 12px #ffffff;
+  --shadow-recessed: inset 4px 4px 8px #babecc, inset -4px -4px 8px #ffffff;
+  --shadow-glow-accent: 0 0 12px 3px rgba(255, 71, 87, 0.5);
 
+  /* Typography */
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Courier New', Courier, monospace;
 
-  --primary-color: #2563EB; /* A nice vibrant blue */
-  --bg-secondary: #F1F5F9;  /* A soft gray for active states */
+  /* Legacy compat aliases */
+  --primary-color: #ff4757;
 
-  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  /* Transitions */
+  --transition-fast:   150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-smooth: 400ms cubic-bezier(0.16, 1, 0.3, 1);
-  --transition-page: 600ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-smooth: 400ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --transition-page:   600ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* --- Reset & Base --- */
@@ -69,7 +94,9 @@ body {
   min-height: 100vh;
   font-family: var(--font-family);
   color: var(--text-primary);
-  background: var(--bg-primary);
+  background-color: var(--bg-primary);
+  /* Noise texture — micro imperfections of matte plastic */
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.6;
@@ -88,7 +115,7 @@ button {
 }
 
 input {
-  font-family: var(--font-family);
+  font-family: var(--font-mono); /* monospace for terminal/data entry feel */
   outline: none;
 }
 
@@ -102,36 +129,18 @@ input {
 
 /* --- Page Transition Animations --- */
 @keyframes slideInFromRight {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
 }
 
 @keyframes slideOutToLeft {
-  from {
-    transform: translateX(0);
-    opacity: 1;
-  }
-  to {
-    transform: translateX(-100%);
-    opacity: 0;
-  }
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(-100%); opacity: 0; }
 }
 
 @keyframes fadeInUp {
-  from {
-    transform: translateY(30px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+  from { transform: translateY(30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 @keyframes fadeIn {
@@ -145,14 +154,8 @@ input {
 }
 
 @keyframes pulse-ring {
-  0% {
-    transform: scale(0.9);
-    opacity: 0.6;
-  }
-  80%, 100% {
-    transform: scale(2);
-    opacity: 0;
-  }
+  0% { transform: scale(0.9); opacity: 0.6; }
+  80%, 100% { transform: scale(2); opacity: 0; }
 }
 
 @keyframes shimmer {
@@ -171,20 +174,27 @@ input {
   100% { background-position: 0% 50%; }
 }
 
-/* --- Scrollbar --- */
+@keyframes led-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 8px 2px rgba(255, 71, 87, 0.6); }
+  50% { opacity: 0.75; box-shadow: 0 0 4px 1px rgba(255, 71, 87, 0.3); }
+}
+
+/* --- Scrollbar (Industrial groove) --- */
 ::-webkit-scrollbar {
   width: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--bg-secondary);
+  box-shadow: var(--shadow-recessed);
 }
 
 ::-webkit-scrollbar-thumb {
   background: var(--border-color);
   border-radius: 3px;
+  box-shadow: var(--shadow-sm);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
+  background: var(--border-dark);
 }

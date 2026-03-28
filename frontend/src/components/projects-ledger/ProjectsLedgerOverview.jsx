@@ -15,12 +15,22 @@ const ProjectsMap = dynamic(() => import("./ProjectsMap"), {
       style={{
         height: 420,
         display: "flex",
+        flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        color: "var(--text-secondary)"
+        color: "#ff4757",
+        background: "#d1d9e6",
+        borderRadius: "16px",
+        boxShadow: "inset 6px 6px 12px #babecc, inset -6px -6px 12px #ffffff",
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize: "0.85rem",
+        fontWeight: "800",
+        textTransform: "uppercase",
+        letterSpacing: "0.08em"
       }}
     >
-      <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: 10 }}></i> Loading map…
+      <i className="fa-solid fa-spinner fa-spin" style={{ marginBottom: 12, fontSize: "1.5rem" }}></i>
+      Syncing Blockchain Map Data...
     </div>
   )
 });
@@ -224,12 +234,12 @@ export default function ProjectsLedgerOverview({
           <div className="logo">
             <i className="fa-solid fa-link"></i> ClearFund
           </div>
-          <div className="nav-controls" style={{ display: "flex", gap: "1.5rem", alignItems: "center" }}>
+          <div className="nav-controls" style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
             <div className="search-bar center-search">
               <i className="fa-solid fa-search"></i>
               <input
                 type="text"
-                placeholder="Search projects by name or location..."
+                placeholder="PROBE SYSTEM..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -361,21 +371,21 @@ export default function ProjectsLedgerOverview({
         </header>
 
         {error && (
-          <div className="empty-state" style={{ marginBottom: "1.5rem" }}>
-            <h3>Could not load data</h3>
-            <p>{error}</p>
+          <div className="empty-state" style={{ marginBottom: "2rem", border: "1px solid rgba(255, 71, 87, 0.3)", background: "rgba(255, 71, 87, 0.05)" }}>
+            <h3 style={{ color: "#ff4757", fontFamily: "'JetBrains Mono', monospace", fontWeight: "800" }}>BUS ERROR / SYSTEM DISCONNECT</h3>
+            <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "0.8rem", fontWeight: "600" }}>{error}</p>
           </div>
         )}
 
         {loading ? (
           <div className="stats-bar">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="stat-card" style={{ opacity: 0.6 }}>
+              <div key={i} className="stat-card" style={{ opacity: 0.5, boxShadow: "inset 4px 4px 8px #babecc, inset -4px -4px 8px #ffffff" }}>
                 <div className="stat-icon grey">
                   <i className="fa-solid fa-spinner fa-spin"></i>
                 </div>
                 <div className="stat-info">
-                  <span>Loading</span>
+                  <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>SYNCING</span>
                   <strong>—</strong>
                 </div>
               </div>
@@ -496,7 +506,7 @@ export default function ProjectsLedgerOverview({
                 </div>
                 <div className="status-snapshot">
                   <strong>Funds released (on-chain)</strong>
-                  <i className="fa-brands fa-ethereum" style={{ marginRight: 8, color: "var(--accent-blue)" }}></i>
+                  <i className="fa-brands fa-ethereum" style={{ marginRight: 8, color: "var(--accent-blue, #ff4757)" }}></i>
                   {formatInrWhole(p.funds_released_inr)}
                 </div>
                 <div className="status-snapshot" style={{ marginTop: "0.5rem" }}>
@@ -513,21 +523,21 @@ export default function ProjectsLedgerOverview({
 
                 {/* Milestone Proofs */}
                 {p.milestones && p.milestones.some(m => m.proofs?.length > 0) && (
-                    <div className="proofs-section" style={{ marginTop: "1rem", paddingTop: "1rem", borderTop: "1px dashed var(--border-color)" }}>
-                        <strong style={{ fontSize: "0.85rem", color: "var(--text-secondary)", display: "block", marginBottom: "0.5rem" }}>Attached Evidence</strong>
+                    <div className="proofs-section" style={{ marginTop: "1.25rem", paddingTop: "1.25rem", borderTop: "2px solid #babecc", boxShadow: "0 1px 0 #ffffff" }}>
+                        <strong style={{ fontSize: "0.7rem", color: "var(--text-secondary)", display: "block", marginBottom: "0.75rem", fontFamily: "'JetBrains Mono', monospace", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: "800" }}>Evidence Logs / On-Chain Datalinks</strong>
                         {p.milestones.filter(m => m.proofs?.length > 0).map(m => (
-                            <div key={m.milestone_index} style={{ marginBottom: "0.5rem", fontSize: "0.85rem" }}>
-                                <span style={{ fontWeight: "600", color: "var(--text-primary)" }}>Milestone {m.milestone_index + 1}:</span>
-                                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "4px" }}>
+                            <div key={m.milestone_index} style={{ marginBottom: "0.75rem", fontSize: "0.75rem" }}>
+                                <span style={{ fontWeight: "800", color: "var(--text-primary)", fontFamily: "'JetBrains Mono', monospace", textTransform: "uppercase" }}>MODULE {m.milestone_index + 1}:</span>
+                                <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", marginTop: "6px" }}>
                                     {m.proofs.map((proofObj, i) => {
                                         const { hash, status } = proofObj;
-                                        let bg = "#f1f5f9", text = "#475569", border = "#cbd5e1", icon = "fa-file", label = "Pending";
-                                        if (status === "Accepted") { bg = "#f0fdf4"; text = "#16a34a"; border = "#bbf7d0"; icon = "fa-check-circle"; label = "Accepted"; }
-                                        else if (status === "Rejected") { bg = "#fef2f2"; text = "#dc2626"; border = "#fecaca"; icon = "fa-times-circle"; label = "Rejected"; }
+                                        let bg = "#e0e5ec", text = "#4a5568", shadow = "4px 4px 8px #babecc, -4px -4px 8px #ffffff", icon = "fa-file-code", label = "DATA";
+                                        if (status === "Accepted") { text = "#27ae60"; icon = "fa-check-double"; label = "VERIFIED"; }
+                                        else if (status === "Rejected") { text = "#ff4757"; icon = "fa-triangle-exclamation"; label = "INVALID"; }
                                         
                                         return (
-                                          <a key={i} href={`https://gateway.pinata.cloud/ipfs/${hash}`} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "4px 8px", background: bg, color: text, borderRadius: "6px", textDecoration: "none", border: `1px solid ${border}`, fontSize: "0.75rem", transition: "all 0.2s" }} onMouseOver={(e) => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.05)" }} onMouseOut={(e) => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "none" }} title={`${label} File`}>
-                                              <i className={`fa-solid ${icon}`}></i> {label} File
+                                          <a key={i} href={`https://gateway.pinata.cloud/ipfs/${hash}`} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "6px 10px", background: bg, color: text, borderRadius: "6px", textDecoration: "none", fontSize: "0.65rem", fontWeight: "800", fontFamily: "'JetBrains Mono', monospace", boxShadow: shadow, transition: "all 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275)" }} onMouseOver={(e) => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "5px 5px 10px #babecc, -5px -5px 10px #ffffff" }} onMouseOut={(e) => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = shadow }} title={`${label} PINATA LINK`}>
+                                              <i className={`fa-solid ${icon}`}></i> {label}
                                           </a>
                                         );
                                     })}

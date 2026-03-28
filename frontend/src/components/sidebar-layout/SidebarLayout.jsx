@@ -36,7 +36,7 @@ export default function SidebarLayout({ role, children }) {
       <aside className="role-sidebar" aria-label="Role navigation">
         <div className="sidebar-header">
           <Link href="/" className="sidebar-brand">
-            <Link2 size={24} style={{ color: "var(--accent-blue)" }} />
+            <Link2 size={24} style={{ color: "#ff4757" }} />
             ClearFund
           </Link>
           <div className="sidebar-role-badge">
@@ -73,8 +73,8 @@ export default function SidebarLayout({ role, children }) {
           </ul>
         </nav>
         <div className="sidebar-footer">
-          <Link href="/" className="sidebar-item" style={{ padding: "0.5rem 0", background: "none" }}>
-            ← Sign out
+          <Link href="/" className="sidebar-item" style={{ padding: "0.5rem 0", background: "none", color: "rgba(255, 71, 87, 0.7)", fontFamily: "'JetBrains Mono', monospace", fontWeight: "700", fontSize: "0.7rem", textTransform: "uppercase" }}>
+            ← LOGOUT / DISCONNECT
           </Link>
         </div>
       </aside>

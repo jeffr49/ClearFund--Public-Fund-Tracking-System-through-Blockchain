@@ -1,3 +1,5 @@
+/* ProfileMenu Industrial Skin */
+
 .profileContainer {
   position: relative;
   display: inline-block;
@@ -9,37 +11,49 @@
   align-items: center;
   gap: 12px;
   padding: 8px 16px;
-  border: 1px solid #e5e7eb;
   border-radius: 9999px;
-  background: white;
+  background: var(--bg-color, #e0e5ec);
+  color: var(--text-primary, #2d3436);
   cursor: pointer;
-  transition: box-shadow 0.2s, background-color 0.2s;
-  color: #374151;
+  border: 1px solid rgba(255,255,255,0.4);
+  box-shadow: 4px 4px 8px #babecc, -4px -4px 8px #ffffff;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .profileBtn:hover {
-  background: #f9fafb;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  background: var(--bg-card, #e8ecf1);
+  box-shadow: 6px 6px 12px #babecc, -6px -6px 12px #ffffff;
+  transform: translateY(-1px);
+}
+
+.profileBtn:active {
+  box-shadow: inset 3px 3px 6px #babecc, inset -3px -3px 6px #ffffff;
+  transform: translateY(1px);
 }
 
 .avatar {
   width: 32px;
   height: 32px;
-  background: #f3f4f6;
+  background: var(--bg-primary, #e0e5ec);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #6b7280;
+  color: var(--accent-primary, #ff4757);
+  box-shadow: inset 2px 2px 4px #babecc, inset -2px -2px 4px #ffffff;
 }
 
 .nameLabel {
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .chevron {
   transition: transform 0.2s;
+  color: var(--text-secondary, #4a5568);
 }
 
 .chevronUp {
@@ -52,23 +66,27 @@
   right: 0;
   margin-top: 12px;
   width: 200px;
-  background: white;
-  border: 1px solid #e5e7eb;
+  background: var(--bg-primary, #e0e5ec);
   border-radius: 12px;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  box-shadow: 12px 12px 24px #babecc, -12px -12px 24px #ffffff, inset 1px 1px 0 rgba(255,255,255,0.5);
+  border: 1px solid rgba(255,255,255,0.4);
   overflow: hidden;
   z-index: 100;
+  animation: slideIn 0.2s ease-out;
 }
 
 .dropdownHeader {
   padding: 12px 16px;
-  background: #f9fafb;
+  background: var(--bg-secondary, #d1d9e6);
+  border-bottom: 1px solid var(--border-color, #babecc);
 }
 
 .userEmail {
-  font-size: 0.75rem;
-  color: #6b7280;
+  font-size: 0.7rem;
+  color: var(--text-secondary, #4a5568);
   margin: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
 }
 
 .dropdownItem {
@@ -80,20 +98,37 @@
   border: none;
   background: transparent;
   cursor: pointer;
-  color: #374151;
-  font-size: 0.875rem;
+  color: var(--text-primary, #2d3436);
+  font-size: 0.75rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   text-align: left;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
 }
 
 .dropdownItem svg {
-  color: #9ca3af;
+  color: var(--text-secondary, #4a5568);
+  opacity: 0.8;
 }
 
 .dropdownItem:hover {
-  background-color: #f3f4f6;
+  background-color: var(--bg-card, #e8ecf1);
+  color: var(--accent-primary, #ff4757);
+}
+
+.dropdownItem:hover svg {
+  color: var(--accent-primary, #ff4757);
+  opacity: 1;
 }
 
 .divider {
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-color, #babecc);
+  box-shadow: 0 1px 0 #ffffff;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }

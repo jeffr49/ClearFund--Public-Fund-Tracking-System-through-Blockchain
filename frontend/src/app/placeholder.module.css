@@ -34,59 +34,80 @@
 .roleBadge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   padding: 8px 18px;
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: capitalize;
-  background: #DBEAFE;
-  color: #2563EB;
-  border-radius: 100px;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 800;
+  text-transform: uppercase;
+  background: var(--bg-primary, #e0e5ec);
+  color: var(--accent-primary, #ff4757);
+  border-radius: 8px;
   margin-bottom: 32px;
+  box-shadow: inset 3px 3px 6px #babecc, inset -3px -3px 6px #ffffff;
+  border: 1px solid rgba(255, 71, 87, 0.2);
 }
 
 .roleDot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #2563EB;
+  background: var(--accent-primary, #ff4757);
+  box-shadow: 0 0 6px rgba(255, 71, 87, 0.6);
 }
 
 .backBtn {
   padding: 12px 28px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  background: transparent;
-  border: 1px solid var(--border-color);
+  font-size: 13px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-secondary, #4a5568);
+  background: var(--bg-primary, #e0e5ec);
+  border: none;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
-  font-family: var(--font-family);
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 5px 5px 10px #babecc, -5px -5px 10px #ffffff;
 }
 
 .backBtn:hover {
-  border-color: #2563EB;
-  color: #2563EB;
-  background: #DBEAFE;
+  background: var(--bg-card, #e8ecf1);
+  box-shadow: 6px 6px 12px #babecc, -6px -6px 12px #ffffff;
+  color: var(--text-primary, #2d3436);
+  transform: translateY(-1px);
+}
+
+.backBtn:active {
+  box-shadow: inset 3px 3px 6px #babecc, inset -3px -3px 6px #ffffff;
+  transform: translateY(1px);
 }
 
 .walletBtn {
   margin-top: 16px;
   padding: 12px 28px;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
   color: #ffffff;
-  background: #2563EB;
+  background: var(--accent-primary, #ff4757);
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   display: flex;
   align-items: center;
   gap: 8px;
+  box-shadow: 4px 4px 8px rgba(166,50,60,0.4), -4px -4px 8px rgba(255,100,110,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+  border-top: 1px solid rgba(255,255,255,0.2);
 }
 
 .walletBtn:hover {
-  background: #1D4ED8;
+  background: var(--accent-hover, #e03e4e);
+  transform: translateY(-1px);
+  box-shadow: 6px 6px 12px rgba(166,50,60,0.4), -6px -6px 12px rgba(255,100,110,0.4), 0 0 10px rgba(255,71,87,0.3), inset 0 1px 0 rgba(255,255,255,0.2);
+}
+
+.walletBtn:active {
+  transform: translateY(2px);
+  box-shadow: inset 4px 4px 8px rgba(166,50,60,0.5), inset -4px -4px 8px rgba(255,120,130,0.2);
 }

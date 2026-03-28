@@ -35,21 +35,24 @@ function GateInner() {
       className="gate-screen"
       style={{
         minHeight: "100vh",
-        background: "var(--bg-primary)",
+        background: "#e0e5ec",
+        backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E\")",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         padding: "2rem",
-        fontFamily: "var(--font-family)"
+        fontFamily: "'Inter', sans-serif"
       }}
     >
       <div
         className="gate-card"
         style={{
-          background: "var(--bg-card)",
+          background: "#e0e5ec",
+          backgroundImage: "radial-gradient(circle at 16px 16px, rgba(0,0,0,0.12) 2.5px, transparent 3.5px), radial-gradient(circle at calc(100% - 16px) 16px, rgba(0,0,0,0.12) 2.5px, transparent 3.5px), radial-gradient(circle at 16px calc(100% - 16px), rgba(0,0,0,0.12) 2.5px, transparent 3.5px), radial-gradient(circle at calc(100% - 16px) calc(100% - 16px), rgba(0,0,0,0.12) 2.5px, transparent 3.5px)",
           padding: "3.5rem",
-          borderRadius: "var(--radius-xl)",
-          boxShadow: "var(--shadow-lg)",
+          borderRadius: "20px",
+          boxShadow: "12px 12px 24px #babecc, -12px -12px 24px #ffffff, inset 1px 1px 0 rgba(255,255,255,0.5)",
+          border: "1px solid rgba(255,255,255,0.4)",
           maxWidth: "500px",
           width: "100%",
           textAlign: "center"
@@ -76,14 +79,15 @@ function GateInner() {
           style={{
             width: "80px",
             height: "80px",
-            background: "var(--accent-light)",
-            color: "var(--accent-primary)",
+            background: "#e0e5ec",
+            color: "#ff4757",
             borderRadius: "50%",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             fontSize: "2rem",
-            margin: "0 auto 2rem"
+            margin: "0 auto 2rem",
+            boxShadow: "inset 4px 4px 8px #babecc, inset -4px -4px 8px #ffffff, 0 0 0 3px #ff4757, 0 0 14px rgba(255,71,87,0.4)"
           }}
         >
           <i
@@ -139,15 +143,18 @@ function GateInner() {
               style={{
                 width: "100%",
                 padding: "1rem",
-                borderRadius: "var(--radius-md)",
-                background: "var(--accent-primary)",
-                color: "#FFFFFF",
-                border: "none",
-                fontWeight: "700",
-                fontSize: "1rem",
+                borderRadius: "10px",
+                background: "#ff4757",
+                color: "#ffffff",
+                border: "1px solid rgba(255,255,255,0.2)",
+                fontWeight: "800",
+                fontSize: "0.85rem",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                fontFamily: "'JetBrains Mono', monospace",
                 cursor: "pointer",
-                boxShadow: "0 4px 12px rgba(37, 99, 235, 0.2)",
-                transition: "all 0.2s"
+                boxShadow: "4px 4px 8px rgba(166,50,60,0.5), -4px -4px 8px rgba(255,120,130,0.3), inset 0 1px 0 rgba(255,255,255,0.2)",
+                transition: "all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275)"
               }}
               onClick={goToDashboard}
             >
@@ -161,8 +168,12 @@ function GateInner() {
             style={{
               background: "none",
               border: "none",
-              color: "var(--text-secondary)",
-              fontSize: "0.9rem",
+              color: "#4a5568",
+              fontSize: "0.8rem",
+              fontFamily: "'JetBrains Mono', monospace",
+              fontWeight: "700",
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
               cursor: "pointer",
               marginTop: "1rem"
             }}

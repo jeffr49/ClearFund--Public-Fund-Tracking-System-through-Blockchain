@@ -1,15 +1,27 @@
+/* ============================================
+   LoginCard — Industrial Skeuomorphism Skin
+   Left branding panel = dark anodised chassis
+   Right auth panel   = raised ABS-plastic panel
+   ============================================ */
+
 /* Layout */
 .splitLayout {
   display: flex;
   min-height: 100vh;
   width: 100vw;
-  background-color: #ffffff;
+  background-color: #e0e5ec;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
 }
 
-/* --- Left Branding Panel --- */
+/* --- Left Branding Panel (Dark Anodised Chassis) --- */
 .brandingPanel {
   flex: 0 0 45%;
-  background-color: #0F172A;
+  background-color: #2d3436;
+  /* Subtle carbon-fiber-like radial hotspot */
+  background-image:
+    radial-gradient(circle at 15% 15%, rgba(255, 71, 87, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 85% 85%, rgba(255, 71, 87, 0.04) 0%, transparent 40%),
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.06'/%3E%3C/svg%3E");
   color: #ffffff;
   padding: 48px;
   display: flex;
@@ -17,16 +29,28 @@
   justify-content: space-between;
   position: relative;
   overflow: hidden;
+  /* Edge bevel simulates physical panel border */
+  border-right: 1px solid #1a1f23;
+  box-shadow: inset -4px 0 12px rgba(0, 0, 0, 0.3), 4px 0 8px rgba(0, 0, 0, 0.2);
 }
 
-.brandingPanel::before {
+/* Vertical vent-slot decorations on right edge */
+.brandingPanel::after {
   content: '';
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: 
-    radial-gradient(circle at 10% 20%, rgba(37, 99, 235, 0.1) 0%, transparent 40%),
-    radial-gradient(circle at 90% 80%, rgba(14, 165, 233, 0.08) 0%, transparent 40%);
-  pointer-events: none;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 120px;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.04) 0px,
+    rgba(255, 255, 255, 0.04) 6px,
+    transparent 6px,
+    transparent 10px
+  );
+  border-radius: 2px;
 }
 
 .brandingContent {
@@ -35,95 +59,186 @@
   margin-top: 40px;
 }
 
+/* Logo mark — glowing LED-style */
 .corpLogo {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   margin-bottom: 64px;
 }
 
 .logoMark {
-  background-color: #2563EB;
+  background-color: #ff4757;
   color: #ffffff;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
-  border-radius: 4px;
-  font-size: 16px;
-  letter-spacing: -0.5px;
+  font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+  border-radius: 6px;
+  font-size: 15px;
+  letter-spacing: 1px;
+  /* Stamped metal button look */
+  box-shadow:
+    4px 4px 8px rgba(0, 0, 0, 0.4),
+    -2px -2px 4px rgba(255, 150, 120, 0.25),
+    0 0 14px rgba(255, 71, 87, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  transition: box-shadow 0.3s ease;
+}
+
+.logoMark::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  width: 60%;
+  height: 30%;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+  pointer-events: none;
 }
 
 .logoType {
-  font-size: 24px;
-  font-weight: 600;
-  letter-spacing: -0.5px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #ecf0f1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* LED status dot */
+.corpLogo::after {
+  content: '';
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #27ae60;
+  margin-left: auto;
+  animation: led-pulse-green 2s ease-in-out infinite;
+  box-shadow: 0 0 8px 2px rgba(39, 174, 96, 0.6);
+}
+
+@keyframes led-pulse-green {
+  0%, 100% { opacity: 1; box-shadow: 0 0 8px 2px rgba(39, 174, 96, 0.6); }
+  50% { opacity: 0.7; box-shadow: 0 0 4px 1px rgba(39, 174, 96, 0.3); }
 }
 
 .heroText h2 {
-  font-size: 38px;
-  font-weight: 700;
+  font-size: 36px;
+  font-weight: 800;
   line-height: 1.15;
   margin-bottom: 24px;
-  color: #F8FAFC;
-  letter-spacing: -1px;
+  /* Embossed text shadow — top-left light source */
+  color: #ecf0f1;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.05), 0 -1px 0 rgba(0, 0, 0, 0.4);
+  letter-spacing: -0.5px;
 }
 
 .heroText p {
-  font-size: 16px;
-  line-height: 1.6;
-  color: #94A3B8;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #a8b2c1;
   max-width: 85%;
+}
+
+/* Industrial separator rule */
+.heroText::before {
+  content: '';
+  display: block;
+  width: 40px;
+  height: 3px;
+  background: #ff4757;
+  border-radius: 2px;
+  margin-bottom: 20px;
+  box-shadow: 0 0 8px rgba(255, 71, 87, 0.5);
 }
 
 .footerLegal {
   position: relative;
   z-index: 2;
-  font-size: 12px;
-  color: #64748B;
+  font-size: 11px;
+  color: #4a5568;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-/* --- Right Auth Panel --- */
+/* --- Right Auth Panel (Raised ABS Plastic Panel) --- */
 .authPanel {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 40px;
-  background-color: #F8FAFC;
+  background-color: #e0e5ec;
 }
 
 .authContainer {
   width: 100%;
-  max-width: 460px;
-  background: #ffffff;
+  max-width: 480px;
+  background: #e0e5ec;
   padding: 40px;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-  border: 1px solid #E2E8F0;
-  animation: fadeIn 0.4s ease-out;
+  border-radius: 20px;
+  /* The core neumorphic floating panel shadow */
+  box-shadow:
+    12px 12px 24px #babecc,
+    -12px -12px 24px #ffffff,
+    inset 1px 1px 0 rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  animation: fadeIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+  /* Corner screw simulation */
+  background-image:
+    radial-gradient(circle at 16px 16px, rgba(0, 0, 0, 0.12) 2.5px, transparent 3.5px),
+    radial-gradient(circle at calc(100% - 16px) 16px, rgba(0, 0, 0, 0.12) 2.5px, transparent 3.5px),
+    radial-gradient(circle at 16px calc(100% - 16px), rgba(0, 0, 0, 0.12) 2.5px, transparent 3.5px),
+    radial-gradient(circle at calc(100% - 16px) calc(100% - 16px), rgba(0, 0, 0, 0.12) 2.5px, transparent 3.5px);
 }
 
 .authHeader {
   margin-bottom: 32px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(186, 190, 204, 0.6);
+  position: relative;
+}
+
+/* Accent rule under heading */
+.authHeader::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 32px;
+  height: 2px;
+  background: #ff4757;
+  border-radius: 1px;
+  box-shadow: 0 0 6px rgba(255, 71, 87, 0.5);
 }
 
 .authTitle {
-  font-size: 22px;
-  font-weight: 700;
-  color: #0F172A;
+  font-size: 20px;
+  font-weight: 800;
+  color: #2d3436;
   margin-bottom: 6px;
   letter-spacing: -0.5px;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .authSubtitle {
-  font-size: 14px;
-  color: #64748B;
+  font-size: 13px;
+  color: #4a5568;
+  font-family: 'JetBrains Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .form {
@@ -145,48 +260,69 @@
 }
 
 .label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #334155;
+  font-size: 11px;
+  font-weight: 700;
+  color: #4a5568;
+  font-family: 'JetBrains Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .requiredMark {
-  font-size: 11px;
-  color: #94A3B8;
+  font-size: 10px;
+  color: #ff4757;
+  font-family: 'JetBrains Mono', monospace;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.05px;
+  font-weight: 700;
 }
 
+/* Inputs — recessed data slots */
 .input {
   width: 100%;
-  padding: 12px 16px;
-  border: 1px solid #CBD5E1;
-  background-color: #ffffff;
-  border-radius: 6px;
-  font-size: 14px;
-  color: #0F172A;
-  transition: all 0.2s ease;
+  padding: 13px 18px;
+  border: none;
+  background-color: #e0e5ec;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #2d3436;
+  font-family: 'JetBrains Mono', monospace;
+  transition: all 0.25s ease;
+  /* Recessed inset shadow */
+  box-shadow: inset 4px 4px 8px #babecc, inset -4px -4px 8px #ffffff;
 }
 
 .input:focus {
   outline: none;
-  border-color: #2563EB;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  /* Add accent LED-glow ring on focus */
+  box-shadow:
+    inset 4px 4px 8px #babecc,
+    inset -4px -4px 8px #ffffff,
+    0 0 0 2px #ff4757,
+    0 0 8px rgba(255, 71, 87, 0.3);
 }
 
 .input::placeholder {
-  color: #94A3B8;
+  color: rgba(74, 85, 104, 0.45);
+  font-family: 'JetBrains Mono', monospace;
 }
 
 .inputError {
-  border-color: #EF4444;
+  box-shadow:
+    inset 4px 4px 8px #babecc,
+    inset -4px -4px 8px #ffffff,
+    0 0 0 2px rgba(255, 71, 87, 0.5);
 }
 
 .inputError:focus {
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+  box-shadow:
+    inset 4px 4px 8px #babecc,
+    inset -4px -4px 8px #ffffff,
+    0 0 0 2px #ff4757,
+    0 0 10px rgba(255, 71, 87, 0.4);
 }
 
-/* --- Roles List --- */
+/* --- Roles List (Tactile Physical Buttons) --- */
 .roleList {
   display: flex;
   flex-direction: column;
@@ -197,33 +333,63 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 14px 16px;
-  border: 1px solid #E2E8F0;
-  border-radius: 6px;
+  padding: 14px 18px;
+  border: none;
+  border-radius: 10px;
   cursor: pointer;
-  background-color: #ffffff;
-  transition: all 0.2s ease;
+  background-color: #e0e5ec;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  /* Raised panel shadow */
+  box-shadow: 5px 5px 10px #babecc, -5px -5px 10px #ffffff;
 }
 
 .roleItem:hover {
-  background-color: #F8FAFC;
-  border-color: #CBD5E1;
+  box-shadow: 7px 7px 14px #babecc, -7px -7px 14px #ffffff;
+  transform: translateY(-1px);
+}
+
+.roleItem:active {
+  transform: translateY(1px);
+  box-shadow: inset 4px 4px 8px #babecc, inset -4px -4px 8px #ffffff;
 }
 
 .roleItemSelected {
-  border-color: #2563EB;
-  background-color: #EFF6FF;
+  /* Pressed-in state — item is selected/depressed */
+  box-shadow:
+    inset 4px 4px 8px #babecc,
+    inset -4px -4px 8px #ffffff,
+    0 0 0 2px #ff4757;
+  transform: translateY(0);
+}
+
+.roleItemSelected:hover {
+  box-shadow:
+    inset 4px 4px 8px #babecc,
+    inset -4px -4px 8px #ffffff,
+    0 0 0 2px #ff4757;
+  transform: translateY(0);
 }
 
 .roleIconBox {
-  color: #64748B;
+  color: #4a5568;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #e0e5ec;
+  box-shadow: 3px 3px 6px #babecc, -3px -3px 6px #ffffff;
+  flex-shrink: 0;
+  transition: all 0.2s;
 }
 
 .roleItemSelected .roleIconBox {
-  color: #2563EB;
+  color: #ff4757;
+  box-shadow:
+    2px 2px 4px #babecc,
+    -2px -2px 4px #ffffff,
+    0 0 8px rgba(255, 71, 87, 0.3);
 }
 
 .roleDetails {
@@ -233,27 +399,31 @@
 }
 
 .roleName {
-  font-size: 14px;
-  font-weight: 600;
-  color: #0F172A;
+  font-size: 13px;
+  font-weight: 700;
+  color: #2d3436;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .roleItemSelected .roleName {
-  color: #1E40AF;
+  color: #ff4757;
 }
-
 
 .radioCircle {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  border: 2px solid #CBD5E1;
+  border: none;
   position: relative;
   flex-shrink: 0;
+  background: #e0e5ec;
+  box-shadow: inset 3px 3px 5px #babecc, inset -3px -3px 5px #ffffff;
 }
 
 .radioChecked {
-  border-color: #2563EB;
+  box-shadow:
+    inset 3px 3px 5px #babecc,
+    inset -3px -3px 5px #ffffff;
 }
 
 .radioChecked::after {
@@ -261,10 +431,11 @@
   position: absolute;
   top: 3px;
   left: 3px;
-  width: 6px;
-  height: 6px;
-  background-color: #2563EB;
+  width: 10px;
+  height: 10px;
+  background-color: #ff4757;
   border-radius: 50%;
+  box-shadow: 0 0 6px rgba(255, 71, 87, 0.6);
 }
 
 /* --- Sub Roles --- */
@@ -277,11 +448,11 @@
 .subRoleContainer {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   margin-left: 32px;
-  margin-top: 4px;
-  margin-bottom: 8px;
-  animation: fadeIn 0.15s ease-out;
+  margin-top: 6px;
+  margin-bottom: 6px;
+  animation: fadeIn 0.2s ease-out;
 }
 
 .subRoleItem {
@@ -289,32 +460,47 @@
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  background-color: #F8FAFC;
-  border: 1px solid #E2E8F0;
-  border-radius: 6px;
+  background-color: #e0e5ec;
+  border: none;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-shadow: 4px 4px 8px #babecc, -4px -4px 8px #ffffff;
 }
 
 .subRoleItem:hover {
-  background-color: #F1F5F9;
-  border-color: #CBD5E1;
+  box-shadow: 5px 5px 10px #babecc, -5px -5px 10px #ffffff;
+}
+
+.subRoleItem:active {
+  box-shadow: inset 3px 3px 6px #babecc, inset -3px -3px 6px #ffffff;
 }
 
 .subRoleSelected {
-  border-color: #2563EB;
-  background-color: #EFF6FF;
+  box-shadow:
+    inset 3px 3px 6px #babecc,
+    inset -3px -3px 6px #ffffff,
+    0 0 0 2px rgba(255, 71, 87, 0.45);
+}
+
+.subRoleSelected:hover {
+  box-shadow:
+    inset 3px 3px 6px #babecc,
+    inset -3px -3px 6px #ffffff,
+    0 0 0 2px rgba(255, 71, 87, 0.45);
 }
 
 .subRoleName {
-  font-size: 13px;
-  font-weight: 500;
-  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4a5568;
+  font-family: 'JetBrains Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .subRoleSelected .subRoleName {
-  color: #1E40AF;
-  font-weight: 600;
+  color: #ff4757;
 }
 
 .radioCircleSmall {
@@ -323,10 +509,10 @@
 }
 
 .radioCircleSmall::after {
-  width: 6px;
-  height: 6px;
-  top: 2px;
-  left: 2px;
+  width: 8px;
+  height: 8px;
+  top: 3px;
+  left: 3px;
 }
 
 .credentialsGrid {
@@ -335,58 +521,84 @@
   gap: 16px;
 }
 
-/* --- Buttons --- */
+/* --- Primary Button (Safety-Orange physical key) --- */
 .primaryBtn {
   width: 100%;
-  padding: 12px;
-  background-color: #2563EB;
+  padding: 14px;
+  background-color: #ff4757;
   color: #ffffff;
   border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 600;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
   cursor: pointer;
-  transition: background-color 0.2s;
-  height: 44px;
+  height: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Red-tinted neumorphic button */
+  box-shadow:
+    4px 4px 8px rgba(166, 50, 60, 0.5),
+    -4px -4px 8px rgba(255, 120, 130, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .primaryBtn:hover:not(:disabled) {
-  background-color: #1D4ED8;
+  background-color: #e03e4e;
+  box-shadow:
+    6px 6px 12px rgba(166, 50, 60, 0.5),
+    -6px -6px 12px rgba(255, 120, 130, 0.3),
+    0 0 12px rgba(255, 71, 87, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.primaryBtn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow:
+    inset 4px 4px 8px rgba(166, 50, 60, 0.5),
+    inset -4px -4px 8px rgba(255, 120, 130, 0.2);
 }
 
 .primaryBtn:disabled {
-  opacity: 0.7;
+  opacity: 0.6;
   cursor: not-allowed;
 }
 
-
+/* Error states */
 .errorBanner {
-  padding: 10px 14px;
-  background-color: #FEF2F2;
-  border: 1px solid #FECACA;
-  color: #DC2626;
-  font-size: 13px;
-  border-radius: 6px;
+  padding: 12px 16px;
+  background-color: rgba(255, 71, 87, 0.08);
+  border: 1px solid rgba(255, 71, 87, 0.25);
+  color: #c0392b;
+  font-size: 12px;
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  box-shadow: inset 2px 2px 5px rgba(255, 71, 87, 0.1), inset -2px -2px 5px rgba(255, 255, 255, 0.5);
 }
 
 .errorText {
-  font-size: 12px;
-  color: #DC2626;
+  font-size: 11px;
+  color: #c0392b;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.02em;
 }
 
 .loadingState {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.3);
   border-top-color: #ffffff;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -398,7 +610,7 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -407,16 +619,21 @@
   .splitLayout {
     flex-direction: column;
   }
-  
+
   .brandingPanel {
     flex: none;
     padding: 32px 24px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
-  
+
+  .brandingPanel::after {
+    display: none;
+  }
+
   .heroText h2 {
-    font-size: 28px;
+    font-size: 26px;
   }
-  
+
   .heroText p {
     max-width: 100%;
   }

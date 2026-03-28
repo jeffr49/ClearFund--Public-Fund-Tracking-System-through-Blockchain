@@ -1,10 +1,11 @@
 .brandIcon {
-  color: #3b82f6;
+  color: var(--accent-primary, #ff4757);
   flex-shrink: 0;
+  border-radius: 4px;
 }
 
 .soon {
-  opacity: 0.55;
+  opacity: 0.6;
   cursor: default;
   display: flex;
   align-items: center;
