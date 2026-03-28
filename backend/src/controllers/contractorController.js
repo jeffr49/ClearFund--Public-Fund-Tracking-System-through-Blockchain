@@ -13,7 +13,7 @@ async function getApprovalThreshold(contractAddress) {
   }
 
   try {
-    const contract = new ethers.Contract(contractAddress, escrowAbi, provider);
+    const contract = new ethers.Contract(contractAddress, escrowAbi.abi, provider);
     const threshold = await contract.approvalThreshold();
     return Number(threshold);
   } catch (_err) {

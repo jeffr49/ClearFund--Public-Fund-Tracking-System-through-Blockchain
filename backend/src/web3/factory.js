@@ -48,15 +48,15 @@ exports.deployProject = async (bid, projectId) => {
     // =========================
     // 3. STORE IN DB
     // =========================
+    // Clear any existing in case of retries
+    await supabase.from("project_approvers").delete().eq("project_id", projectId);
+
     const { error: insertApproversError } = await supabase
       .from("project_approvers")
-      .upsert(
-        {
-          project_id: projectId,
-          wallet_address: selectedApprovers
-        },
-        { onConflict: "project_id" }
-      );
+      .insert({
+        project_id: projectId,
+        wallet_address: selectedApprovers
+      });
     if (insertApproversError) throw insertApproversError;
 
     // =========================
