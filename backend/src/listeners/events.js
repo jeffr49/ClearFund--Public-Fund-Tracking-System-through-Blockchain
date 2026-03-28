@@ -198,12 +198,35 @@ exports.listenToProject = (projectId, contractAddress) => {
       if (eventKey) seenEventKeys.add(eventKey);
 
       const newD = new Date(Number(newDeadline) * 1000).toISOString();
+      
+      // Update milestone status to 'extended' and set the new deadline
       const { error: updErr3 } = await supabase
         .from("milestones")
-        .update({ status: 'deadline_extended', deadline: newD })
+        .update({ status: 'extended', deadline: newD })
         .eq("project_id", projectId)
         .eq("milestone_index", Number(milestoneId));
-      if (updErr3) console.error("Error extending deadline:", updErr3);
+      if (updErr3) console.error("Error extending deadline on milestone:", updErr3);
+
+      // Recalculate and update the overall project deadline
+      const { data: mData, error: mErr } = await supabase
+        .from("milestones")
+        .select("deadline")
+        .eq("project_id", projectId);
+        
+      if (!mErr && mData && mData.length > 0) {
+          // Find the maximum deadline across all milestones
+          const maxDeadline = mData.reduce((max, m) => {
+              const d = new Date(m.deadline);
+              return d > max ? d : max;
+          }, new Date(0));
+          
+          const { error: pErr } = await supabase
+            .from("projects")
+            .update({ deadline: maxDeadline.toISOString() })
+            .eq("id", projectId);
+            
+          if (pErr) console.error("Error updating project deadline:", pErr);
+      }
 
     } catch (err) {
       console.error("DeadlineExtended error:", err);

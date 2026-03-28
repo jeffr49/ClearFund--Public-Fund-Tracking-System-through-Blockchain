@@ -2,9 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { ethers } from "ethers";
 import SidebarLayout from "@/components/sidebar-layout/SidebarLayout";
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+const ESCROW_ABI = [
+  "function submitProof(uint256 milestoneId, string calldata ipfsHash) external"
+];
 
 export default function SubmitProofsPage() {
   const router = useRouter();
@@ -108,19 +112,23 @@ export default function SubmitProofsPage() {
 
       setUploading(prev => ({ ...prev, [index]: { ...prev[index], status: "Anchoring to Blockchain Registry..." } }));
 
-      const submitRes = await fetch(`${API_BASE}/contractor/submit-proof`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          projectId: selectedProject.project_id,
-          contractAddress: selectedProject.contract_address,
-          milestoneId,
-          ipfsHash,
-          actor: wallet
-        })
-      });
+      if (!window.ethereum) {
+        throw new Error("MetaMask is required to submit proof.");
+      }
+      if (!selectedProject?.contract_address) {
+        throw new Error("Project contract address is missing.");
+      }
 
-      if (!submitRes.ok) throw new Error("Transaction failed to commit.");
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const contract = new ethers.Contract(
+        selectedProject.contract_address,
+        ESCROW_ABI,
+        signer
+      );
+
+      const tx = await contract.submitProof(milestoneId, ipfsHash);
+      await tx.wait();
       
       setUploading(prev => ({ ...prev, [index]: { ...prev[index], status: "Proof Anchored Successfully!" } }));
       setTimeout(() => openWorkspace(selectedProject), 2000);

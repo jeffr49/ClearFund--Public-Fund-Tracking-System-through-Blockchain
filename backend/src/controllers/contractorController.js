@@ -216,44 +216,6 @@ exports.uploadProof = async (req, res) => {
   }
 };
 
-exports.submitProof = async (req, res) => {
-  try {
-    const { projectId, contractAddress, milestoneId, ipfsHash, actor } = req.body;
-    if (!contractAddress || milestoneId === undefined || !ipfsHash || !projectId) {
-      return res.status(400).json({
-        error: "projectId, contractAddress, milestoneId and ipfsHash are required"
-      });
-    }
-
-    // Insert event into Supabase
-    const { data: eventData, error: eventError } = await supabase
-      .from("events")
-      .insert([
-        {
-          project_id: projectId,
-          contract_address: contractAddress,
-          event_type: "PROOF_SUBMITTED",
-          milestone_id: milestoneId,
-          actor: actor || "CONTRACTOR",
-          metadata: { ipfsHash }
-        }
-      ])
-      .select()
-      .single();
-
-    if (eventError) throw eventError;
-
-    return res.json({
-      ok: true,
-      message: "Proof submission recorded in database.",
-      event: eventData
-    });
-  } catch (err) {
-    console.error("submitProof error:", err);
-    return res.status(500).json({ error: "Failed to submit proof to database" });
-  }
-};
-
 exports.getContractorStats = async (req, res) => {
   try {
     const wallet = req.query.wallet;
