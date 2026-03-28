@@ -2,6 +2,73 @@ const { listenToProject } = require("../listeners/events");
 const supabase = require("../db/supabaseClient");
 const { deployProject } = require("../web3/factory");
 
+function sortTemplate(rows) {
+  return [...(rows || [])].sort(
+    (a, b) => Number(a.milestone_index) - Number(b.milestone_index)
+  );
+}
+
+/**
+ * Aligns contractor amounts/deadlines to the government milestone template (same count & order).
+ * Stored shape: { milestone_index, amount, deadline } (deadline ISO string).
+ */
+function buildBidMilestonePayload(incoming, templateSorted) {
+  const n = templateSorted.length;
+  if (!Array.isArray(incoming) || incoming.length !== n) {
+    const err = new Error(`Bid must include exactly ${n} milestone row(s) for this tender.`);
+    err.status = 400;
+    throw err;
+  }
+
+  const out = [];
+  let sum = 0;
+
+  for (let i = 0; i < n; i++) {
+    const row = incoming[i];
+    const tpl = templateSorted[i];
+    const idx =
+      row.milestone_index !== undefined && row.milestone_index !== null
+        ? Number(row.milestone_index)
+        : Number(tpl.milestone_index);
+    if (idx !== Number(tpl.milestone_index)) {
+      const err = new Error(
+        `Milestone row ${i + 1} must match template index ${tpl.milestone_index}.`
+      );
+      err.status = 400;
+      throw err;
+    }
+
+    const amount = Number(row.amount);
+    if (!Number.isFinite(amount) || amount < 0) {
+      const err = new Error(`Invalid amount for milestone ${idx + 1}.`);
+      err.status = 400;
+      throw err;
+    }
+
+    const rawDeadline = row.deadline;
+    if (rawDeadline === undefined || rawDeadline === null || rawDeadline === "") {
+      const err = new Error(`Deadline required for milestone ${idx + 1}.`);
+      err.status = 400;
+      throw err;
+    }
+    const d = new Date(rawDeadline);
+    if (Number.isNaN(d.getTime())) {
+      const err = new Error(`Invalid deadline for milestone ${idx + 1}.`);
+      err.status = 400;
+      throw err;
+    }
+
+    sum += amount;
+    out.push({
+      milestone_index: idx,
+      amount,
+      deadline: d.toISOString()
+    });
+  }
+
+  return { lines: out, sum };
+}
+
 // =========================
 // SUBMIT BID
 // =========================
@@ -18,10 +85,9 @@ exports.submitBid = async (req, res) => {
       return res.status(400).json({ error: "Invalid bid payload" });
     }
 
-    // Fetch project
     const { data: project, error: projectError } = await supabase
       .from("projects")
-      .select('"maximumBidAmount"')
+      .select("maximumBidAmount, status")
       .eq("id", projectId)
       .single();
 
@@ -29,18 +95,49 @@ exports.submitBid = async (req, res) => {
       return res.status(404).json({ error: "Project not found" });
     }
 
-    // Validate max bid
-    if (totalAmount > project.maximumBidAmount) {
+    if ((project.status || "").toLowerCase() !== "bidding") {
+      return res.status(400).json({ error: "This project is not open for bidding." });
+    }
+
+    const maxBid = Number(
+      project.maximumBidAmount ?? project.maximum_bid_amount
+    );
+    if (!Number.isFinite(maxBid) || totalAmount > maxBid) {
       return res.status(400).json({ error: "Bid too high" });
     }
 
-    // Insert bid
+    const { data: templateRows, error: tplError } = await supabase
+      .from("milestones")
+      .select("milestone_index, title, description")
+      .eq("project_id", projectId);
+
+    if (tplError) throw tplError;
+    const templateSorted = sortTemplate(templateRows);
+    if (templateSorted.length === 0) {
+      return res.status(400).json({
+        error: "This project has no milestone template; the authority must define milestones first."
+      });
+    }
+
+    let normalized;
+    try {
+      normalized = buildBidMilestonePayload(milestones, templateSorted);
+    } catch (e) {
+      return res.status(e.status || 400).json({ error: e.message });
+    }
+
+    if (Math.abs(normalized.sum - totalAmount) > 0.02) {
+      return res.status(400).json({
+        error: "Milestone amounts must sum to your total bid (within 0.02 INR)."
+      });
+    }
+
     const { error: insertError } = await supabase.from("bids").insert([
       {
         project_id: projectId,
         contractor_wallet: wallet,
         total_amount: totalAmount,
-        milestone_data: milestones
+        milestone_data: normalized.lines
       }
     ]);
     if (insertError) throw insertError;
@@ -91,11 +188,34 @@ exports.selectBid = async (req, res) => {
       .update({
         contract_address: contractAddress,
         contractor_wallet: selected.contractor_wallet,
-        selected_bid_id: selected.id,
         status: "active"
       })
       .eq("id", projectId);
     if (updateError) throw updateError;
+
+    let bidLines = selected.milestone_data;
+    if (typeof bidLines === "string") {
+      try {
+        bidLines = JSON.parse(bidLines || "[]");
+      } catch (_e) {
+        bidLines = [];
+      }
+    }
+    if (!Array.isArray(bidLines)) bidLines = [];
+    const sortedBid = [...bidLines].sort(
+      (a, b) => Number(a.milestone_index) - Number(b.milestone_index)
+    );
+    for (const line of sortedBid) {
+      const { error: msUpdErr } = await supabase
+        .from("milestones")
+        .update({
+          amount: line.amount,
+          deadline: line.deadline
+        })
+        .eq("project_id", projectId)
+        .eq("milestone_index", line.milestone_index);
+      if (msUpdErr) throw msUpdErr;
+    }
 
     // 4. Start listening to events
     listenToProject(projectId, contractAddress);

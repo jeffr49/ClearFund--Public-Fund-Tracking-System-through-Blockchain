@@ -186,6 +186,13 @@ export default function SubmitProofsPage() {
                     {milestones.map((m, idx) => {
                         const isNext = milestones.findIndex(ms => ms.status !== 'APPROVED') === idx;
                         const uploadInfo = uploading[m.index] || {};
+                        const msLabel =
+                          m.title?.trim() ||
+                          m.description?.trim() ||
+                          `Milestone ${m.index + 1}`;
+                        const deadlineOk =
+                          m.deadline &&
+                          !Number.isNaN(new Date(m.deadline).getTime());
 
                         return (
                             <div key={m.index} className={`milestone-proof-card ${m.status.toLowerCase()} ${isNext ? 'active-milestone' : ''}`} style={{ 
@@ -197,9 +204,9 @@ export default function SubmitProofsPage() {
                             }}>
                                 <div className="ms-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
                                     <div className="ms-title-wrap" style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                                        <span className="ms-index" style={{ fontWeight: "800", color: "var(--text-secondary)", fontSize: "1.1rem" }}>#{m.index}</span>
-                                        <h4 className="ms-title" style={{ fontSize: "1.2rem", fontWeight: "700" }}>{m.description}</h4>
-                                        {isNext && <span className="current-badge" style={{ background: "var(--primary-color)", color: "white", padding: "2px 8px", borderRadius: "99px", fontSize: "0.65rem", fontWeight: "800" }}>CURRENT PHASE</span>}
+                                        <span className="ms-index" style={{ fontWeight: "800", color: "var(--text-secondary)", fontSize: "1.1rem" }}>#{m.index + 1}</span>
+                                        <h4 className="ms-title" style={{ fontSize: "1.2rem", fontWeight: "700" }}>{msLabel}</h4>
+                                        {isNext && <span className="current-badge" style={{ background: "var(--primary-color)", color: "white", padding: "2px 8px", borderRadius: "99px", fontSize: "0.65rem", fontWeight: "800" }}><i className="fa-solid fa-star"></i> CURRENT</span>}
                                     </div>
                                     <span style={{ 
                                       padding: "4px 12px", 
@@ -210,9 +217,12 @@ export default function SubmitProofsPage() {
                                       color: m.status === "APPROVED" ? "#166534" : (m.status === "UNDER_REVIEW" ? "#854d0e" : "#475569")
                                     }}>{m.status.replace('_', ' ')}</span>
                                 </div>
+                                {m.description?.trim() && m.title?.trim() ? (
+                                    <p style={{ margin: "0 0 0.5rem", fontSize: "0.85rem", color: "var(--text-secondary)" }}>{m.description}</p>
+                                ) : null}
                                 <div className="ms-details" style={{ display: "flex", gap: "2rem", marginBottom: "1.5rem" }}>
-                                    <span style={{ display: "flex", alignItems: "center", gap: "6px" }}><i className="fa-solid fa-coins" style={{ color: "#f59e0b" }}></i> <strong>{formatCurrency(m.amount)}</strong></span>
-                                    <span style={{ display: "flex", alignItems: "center", gap: "6px" }}><i className="fa-regular fa-calendar-check"></i> Exp: {new Date(m.deadline).toLocaleDateString()}</span>
+                                    <span style={{ display: "flex", alignItems: "center", gap: "6px" }}><i className="fa-solid fa-coins" style={{ color: "#f59e0b" }}></i> <strong>{formatCurrency(Number(m.amount) || 0)}</strong></span>
+                                    <span style={{ display: "flex", alignItems: "center", gap: "6px" }}><i className="fa-regular fa-calendar-check"></i> Exp: {deadlineOk ? new Date(m.deadline).toLocaleDateString("en-IN") : "—"}</span>
                                 </div>
 
                                 {(m.status === 'NOT_SUBMITTED' || m.status === 'REJECTED') && (

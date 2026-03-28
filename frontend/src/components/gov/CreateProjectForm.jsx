@@ -20,6 +20,8 @@ export default function CreateProjectForm({ ledgerHref = DEFAULT_LEDGER } = {}) 
   const [biddingDeadlineLocal, setBiddingDeadlineLocal] = useState("");
   const [maximumBidAmount, setMaximumBidAmount] = useState("");
   const [governmentWallet, setGovernmentWallet] = useState("");
+  const emptyMilestone = () => ({ title: "", description: "" });
+  const [milestones, setMilestones] = useState([emptyMilestone()]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -62,6 +64,19 @@ export default function CreateProjectForm({ ledgerHref = DEFAULT_LEDGER } = {}) 
     } else if (!/^0x[a-fA-F0-9]{40}$/.test(governmentWallet.trim())) {
       fe.governmentWallet = "Must be a 0x-prefixed 40-hex Ethereum address.";
     }
+    if (!milestones.length) {
+      fe.milestones = "Add at least one milestone.";
+    } else {
+      for (let i = 0; i < milestones.length; i++) {
+        const m = milestones[i];
+        const has =
+          (m.title && m.title.trim()) || (m.description && m.description.trim());
+        if (!has) {
+          fe.milestones = `Milestone ${i + 1}: enter a title and/or description.`;
+          break;
+        }
+      }
+    }
     setFieldErrors(fe);
     return Object.keys(fe).length === 0;
   }
@@ -88,7 +103,11 @@ export default function CreateProjectForm({ ledgerHref = DEFAULT_LEDGER } = {}) 
           },
           biddingDeadline: deadlineIso,
           maximumBidAmount: Number(maximumBidAmount),
-          governmentWallet: governmentWallet.trim()
+          governmentWallet: governmentWallet.trim(),
+          milestones: milestones.map((m) => ({
+            title: (m.title || "").trim(),
+            description: (m.description || "").trim()
+          }))
         })
       });
 
@@ -203,6 +222,78 @@ export default function CreateProjectForm({ ledgerHref = DEFAULT_LEDGER } = {}) 
           ) : null}
         </div>
       </div>
+
+      <div className={styles.sectionTitle}>Milestones (authority-defined)</div>
+      <p className={styles.hint}>
+        Number each phase 1…n in order. Contractors only allocate their total bid across these
+        milestones; rupee amounts are stored after a bid is selected.
+      </p>
+
+      {milestones.map((m, i) => (
+        <div key={i} className={styles.milestoneBlock}>
+          <div className={styles.milestoneBlockHead}>
+            <span className={styles.milestoneNum}>Milestone {i + 1}</span>
+            {milestones.length > 1 ? (
+              <button
+                type="button"
+                className={styles.secondary}
+                onClick={() =>
+                  setMilestones(milestones.filter((_, j) => j !== i))
+                }
+                disabled={submitting}
+              >
+                Remove
+              </button>
+            ) : null}
+          </div>
+          <div className={styles.group}>
+            <label className={styles.label} htmlFor={`cf-ms-title-${i}`}>
+              Title
+            </label>
+            <input
+              id={`cf-ms-title-${i}`}
+              className={styles.input}
+              value={m.title}
+              onChange={(e) => {
+                const next = [...milestones];
+                next[i] = { ...next[i], title: e.target.value };
+                setMilestones(next);
+              }}
+              placeholder="e.g. Site survey & approvals"
+              disabled={submitting}
+            />
+          </div>
+          <div className={styles.group}>
+            <label className={styles.label} htmlFor={`cf-ms-desc-${i}`}>
+              Description
+            </label>
+            <textarea
+              id={`cf-ms-desc-${i}`}
+              className={styles.textarea}
+              value={m.description}
+              onChange={(e) => {
+                const next = [...milestones];
+                next[i] = { ...next[i], description: e.target.value };
+                setMilestones(next);
+              }}
+              placeholder="Deliverables and acceptance criteria for this phase."
+              disabled={submitting}
+            />
+          </div>
+        </div>
+      ))}
+      <button
+        type="button"
+        className={styles.secondary}
+        onClick={() => setMilestones([...milestones, emptyMilestone()])}
+        disabled={submitting}
+        style={{ marginBottom: "1.25rem" }}
+      >
+        Add milestone
+      </button>
+      {fieldErrors.milestones ? (
+        <span className={styles.fieldError}>{fieldErrors.milestones}</span>
+      ) : null}
 
       <div className={styles.sectionTitle}>Bidding & budget</div>
 

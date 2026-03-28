@@ -64,14 +64,14 @@ export default function AvailableProjectsPage() {
     }
     setActiveBidForm(p.id);
     
-    // Auto-populate milestone expectations from project definition
-    const mData = (p.milestones || []).map(m => ({ 
-      description: m.description || m.title, 
-      amount: "", 
-      deadline: "" 
+    const mData = (p.milestones || []).map((m) => ({
+      milestone_index: m.milestone_index,
+      title: m.title,
+      description: m.description,
+      amount: "",
+      deadline: ""
     }));
-    
-    setBidPayload({ milestones: mData, total: "" });
+    setBidPayload({ ...bidPayload, milestones: mData, total: "" });
     setSubmissionStatus({});
   };
 
@@ -96,9 +96,17 @@ export default function AvailableProjectsPage() {
        return;
     }
 
-    if (milestones.some(m => !m.amount || !m.deadline)) {
-        setSubmissionStatus({ error: "All milestones must have an amount and a deadline." });
-        return;
+    if (
+      milestones.length === 0 ||
+      milestones.some((m) => !m.amount || !m.deadline)
+    ) {
+      setSubmissionStatus({
+        error:
+          milestones.length === 0
+            ? "This tender has no milestones defined yet."
+            : "Please complete all milestone amounts and deadlines."
+      });
+      return;
     }
 
     // Verify milestone sum (optional but good UX)
@@ -277,22 +285,29 @@ export default function AvailableProjectsPage() {
                             </div>
                             <div className="milestone-rows" style={{ display: "grid", gap: "0.75rem" }}>
                                 {(bidPayload.milestones || []).map((ms, idx) => (
-                                    <div key={idx} className="milestone-input-row" style={{ display: "grid", gridTemplateColumns: "1fr 180px 180px", gap: "1rem" }}>
-                                      <input type="text" className="bid-input" value={ms.description} readOnly style={{ background: "rgba(0,0,0,0.03)", border: "1px solid var(--border-color)", padding: "10px", borderRadius: "8px", fontSize: "0.9rem" }} />
+                                    <div key={ms.milestone_index ?? idx} className="milestone-input-row" style={{ display: "grid", gridTemplateColumns: "1fr 180px 180px", gap: "1rem" }}>
+                                      <div style={{ padding: "0.35rem 0", fontSize: "0.9rem", color: "var(--text-secondary)" }}>
+                                         <strong style={{ color: "var(--text-primary)", display: "block" }}>
+                                            {ms.title?.trim() || `Milestone ${(ms.milestone_index ?? idx) + 1}`}
+                                         </strong>
+                                         {ms.description?.trim() ? (
+                                            <span style={{ display: "block", marginTop: "0.25rem", fontSize: "0.82rem" }}>{ms.description}</span>
+                                         ) : null}
+                                      </div>
                                       <input 
                                         type="number" 
                                         className="bid-input" 
                                         placeholder="Milestone Part" 
                                         value={ms.amount} 
                                         onChange={(e) => handleMilestoneChange(idx, "amount", e.target.value)} 
-                                        style={{ border: "1px solid var(--border-color)", padding: "10px", borderRadius: "8px", fontSize: "0.9rem" }}
+                                        style={{ border: "1px solid var(--border-color)", padding: "10px", borderRadius: "8px", fontSize: "0.9rem", height: "fit-content" }}
                                       />
                                       <input 
                                         type="date" 
                                         className="bid-input" 
                                         value={ms.deadline} 
                                         onChange={(e) => handleMilestoneChange(idx, "deadline", e.target.value)} 
-                                        style={{ border: "1px solid var(--border-color)", padding: "10px", borderRadius: "8px", fontSize: "0.9rem" }}
+                                        style={{ border: "1px solid var(--border-color)", padding: "10px", borderRadius: "8px", fontSize: "0.9rem", height: "fit-content" }}
                                       />
                                     </div>
                                 ))}

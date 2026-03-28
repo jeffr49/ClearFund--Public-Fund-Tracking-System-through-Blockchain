@@ -1,3 +1,4 @@
+const { randomUUID } = require("crypto");
 const supabase = require("../db/supabaseClient");
 
 // =========================
@@ -11,13 +12,34 @@ exports.createProject = async (req, res) => {
       location,
       biddingDeadline,
       maximumBidAmount,
-      governmentWallet
+      governmentWallet,
+      milestones: milestoneDefs
     } = req.body;
+
+    if (!Array.isArray(milestoneDefs) || milestoneDefs.length === 0) {
+      return res
+        .status(400)
+        .json({ error: "At least one milestone is required (title and description from the authority)." });
+    }
+
+    for (let i = 0; i < milestoneDefs.length; i++) {
+      const m = milestoneDefs[i];
+      const t = (m?.title || "").trim();
+      const d = (m?.description || "").trim();
+      if (!t && !d) {
+        return res.status(400).json({
+          error: `Milestone ${i + 1}: provide a title and/or description.`
+        });
+      }
+    }
+
+    const projectId = randomUUID();
 
     const { data, error } = await supabase
       .from("projects")
       .insert([
         {
+          id: projectId,
           title,
           description,
           location_lat: location.lat,
@@ -33,6 +55,18 @@ exports.createProject = async (req, res) => {
       .single();
 
     if (error) throw error;
+
+    const milestoneRows = milestoneDefs.map((m, idx) => ({
+      project_id: projectId,
+      milestone_index: idx,
+      title: (m.title || "").trim() || null,
+      description: (m.description || "").trim() || null,
+      amount: null,
+      deadline: null
+    }));
+
+    const { error: msError } = await supabase.from("milestones").insert(milestoneRows);
+    if (msError) throw msError;
 
     res.json(data);
 
@@ -72,25 +106,28 @@ exports.getProjectsOverview = async (req, res) => {
         .from("events")
         .select("project_id, metadata")
         .eq("event_type", "FUNDS_RELEASED"),
-      supabase.from("milestones").select("project_id")
+      supabase
+        .from("milestones")
+        .select("project_id, milestone_index, title, description")
     ]);
 
     if (projectsError) throw projectsError;
     if (fundError) throw fundError;
     if (msError) throw msError;
 
-    const fundsWeiByProject = new Map();
-    let totalReleasedWei = 0n;
+    // FUNDS_RELEASED metadata.amount = whole INR (on-chain milestone amount; bank payout is off-chain)
+    const fundsInrByProject = new Map();
+    let totalReleasedInr = 0n;
 
     for (const ev of fundEvents || []) {
       const raw = ev.metadata?.amount;
       if (raw === undefined || raw === null) continue;
       try {
         const w = BigInt(String(raw));
-        totalReleasedWei += w;
+        totalReleasedInr += w;
         const pid = ev.project_id;
         if (!pid) continue;
-        fundsWeiByProject.set(pid, (fundsWeiByProject.get(pid) || 0n) + w);
+        fundsInrByProject.set(pid, (fundsInrByProject.get(pid) || 0n) + w);
       } catch (_e) {
         /* skip bad amount */
       }
@@ -106,12 +143,24 @@ exports.getProjectsOverview = async (req, res) => {
     }
 
     const milestoneCountByProject = new Map();
+    const milestonesByProject = new Map();
     for (const row of milestoneRows || []) {
       if (!row.project_id) continue;
       milestoneCountByProject.set(
         row.project_id,
         (milestoneCountByProject.get(row.project_id) || 0) + 1
       );
+      if (!milestonesByProject.has(row.project_id)) {
+        milestonesByProject.set(row.project_id, []);
+      }
+      milestonesByProject.get(row.project_id).push({
+        milestone_index: row.milestone_index,
+        title: row.title,
+        description: row.description
+      });
+    }
+    for (const arr of milestonesByProject.values()) {
+      arr.sort((a, b) => Number(a.milestone_index) - Number(b.milestone_index));
     }
 
     const list = projects || [];
@@ -134,7 +183,7 @@ exports.getProjectsOverview = async (req, res) => {
       const disp = displayStatus(p.status);
       const totalMs = milestoneCountByProject.get(pid) || 0;
       const doneMs = releasedCountByProject.get(pid) || 0;
-      const releasedWei = fundsWeiByProject.get(pid) || 0n;
+      const releasedInr = fundsInrByProject.get(pid) || 0n;
       const completedDisplay =
         totalMs > 0 ? Math.min(doneMs, totalMs) : doneMs;
 
@@ -153,12 +202,13 @@ exports.getProjectsOverview = async (req, res) => {
         status: p.status,
         display_status: disp,
         maximum_bid_amount: maxBidAmount(p),
-        funds_released_wei: releasedWei.toString(),
+        funds_released_inr: releasedInr.toString(),
         contract_address: p.contract_address,
         contractor_wallet: p.contractor_wallet,
         total_milestones: totalMs,
         completed_milestones: completedDisplay,
-        current_phase: currentPhase
+        current_phase: currentPhase,
+        milestones: milestonesByProject.get(pid) || []
       };
     });
 
@@ -166,7 +216,7 @@ exports.getProjectsOverview = async (req, res) => {
       stats: {
         total_projects: list.length,
         total_budget: totalBudget,
-        funds_released_wei: totalReleasedWei.toString(),
+        funds_released_inr: totalReleasedInr.toString(),
         ongoing,
         bidding,
         completed

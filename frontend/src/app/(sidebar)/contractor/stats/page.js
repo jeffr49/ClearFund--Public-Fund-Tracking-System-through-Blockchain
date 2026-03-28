@@ -104,7 +104,7 @@ export default function ContractorStatsPage() {
                   <div className="icon-wrap green" style={{ width: "60px", height: "60px", background: "#f0fdf4", color: "#10b981", borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.5rem" }}><i className="fa-solid fa-sack-dollar"></i></div>
                   <div className="info-wrap">
                     <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: "600" }}>Total Earnings</span>
-                    <strong style={{ display: "block", fontSize: "1.5rem" }}>{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', notation: 'compact' }).format(stats.total_earnings_wei / 1e18 || 0)}</strong>
+                    <strong style={{ display: "block", fontSize: "1.5rem" }}>{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', notation: 'compact' }).format(Number(stats.total_earnings_inr || 0))}</strong>
                   </div>
                 </div>
                 <div className="stat-mini-card" style={{ background: "white", padding: "1.5rem", borderRadius: "20px", border: "1px solid var(--border-color)", display: "flex", gap: "1rem", alignItems: "center" }}>

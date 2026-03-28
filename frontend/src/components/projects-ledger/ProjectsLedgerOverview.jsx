@@ -2,7 +2,6 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
-import { formatEther } from "ethers";
 import { API_BASE } from "@/lib/backend";
 import MetaMaskConnect from "@/components/wallet/MetaMaskConnect";
 import ProfileMenu from "@/components/ProfileMenu/ProfileMenu";
@@ -34,13 +33,19 @@ function formatInr(n) {
   }).format(Number(n) || 0);
 }
 
-function formatEthWei(weiStr) {
+/** Whole rupees from API (FUNDS_RELEASED sum; on-chain INR units). */
+function formatInrWhole(amountStr) {
   try {
-    const s = formatEther(BigInt(weiStr || "0"));
-    const n = parseFloat(s);
-    if (n === 0) return "0 ETH";
-    if (n < 0.0001) return `${s} ETH`;
-    return `${n.toFixed(4)} ETH`;
+    const bi = BigInt(amountStr || "0");
+    const max = BigInt(Number.MAX_SAFE_INTEGER);
+    if (bi > max) {
+      return `₹${bi.toLocaleString("en-IN")}`;
+    }
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0
+    }).format(Number(bi));
   } catch {
     return "—";
   }
@@ -185,7 +190,7 @@ export default function ProjectsLedgerOverview({
               </div>
               <div className="stat-info">
                 <span>Funds Released</span>
-                <strong>{formatEthWei(stats?.funds_released_wei)}</strong>
+                <strong>{formatInrWhole(stats?.funds_released_inr)}</strong>
               </div>
             </div>
             <div className="stat-card">
@@ -290,7 +295,7 @@ export default function ProjectsLedgerOverview({
                 <div className="status-snapshot">
                   <strong>Funds released (on-chain)</strong>
                   <i className="fa-brands fa-ethereum" style={{ marginRight: 8, color: "var(--accent-blue)" }}></i>
-                  {formatEthWei(p.funds_released_wei)}
+                  {formatInrWhole(p.funds_released_inr)}
                 </div>
                 <div className="status-snapshot" style={{ marginTop: "0.5rem" }}>
                   <strong>Current phase</strong>

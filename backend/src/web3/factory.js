@@ -62,33 +62,50 @@ exports.deployProject = async (bid, projectId) => {
     // =========================
     // 4. PREPARE MILESTONES
     // =========================
-    const milestones = bid.milestone_data;
-    if (!Array.isArray(milestones) || milestones.length === 0) {
+    const raw = bid.milestone_data;
+    const milestones = Array.isArray(raw)
+      ? [...raw]
+          .map((m, i) => ({
+            ...m,
+            milestone_index:
+              m.milestone_index !== undefined && m.milestone_index !== null
+                ? Number(m.milestone_index)
+                : i
+          }))
+          .sort(
+            (a, b) => Number(a.milestone_index) - Number(b.milestone_index)
+          )
+      : [];
+    if (milestones.length === 0) {
       throw new Error("Bid milestones are missing");
     }
 
-    const amounts = milestones.map(m =>
-      ethers.parseEther(m.amount.toString())
-    );
+    // On-chain amounts are whole INR (rupees), matching bid milestone quotes — no ETH is locked.
+    const amounts = milestones.map((m) => {
+      const n = Number(m.amount);
+      if (!Number.isFinite(n) || n < 0) {
+        throw new Error(`Invalid milestone amount (INR): ${m.amount}`);
+      }
+      return BigInt(Math.round(n));
+    });
 
-    const deadlines = milestones.map((_, i) =>
-      Math.floor(Date.now() / 1000) + (i + 1) * 86400 // stagger deadlines
-    );
+    const deadlines = milestones.map((m) => {
+      const t = new Date(m.deadline).getTime();
+      if (Number.isNaN(t)) {
+        throw new Error(`Invalid milestone deadline: ${m.deadline}`);
+      }
+      return Math.floor(t / 1000);
+    });
 
     // =========================
-    // 5. DEPLOY CONTRACT
+    // 5. DEPLOY CONTRACT (non-payable; INR-only bookkeeping on-chain)
     // =========================
-    const totalValue = amounts.reduce((a, b) => a + b, 0n);
-
     const tx = await factory.createProject(
       bid.contractor_wallet,
       selectedApprovers,
       amounts,
       deadlines,
-      2, // approval threshold
-      {
-        value: totalValue,
-      }
+      2 // approval threshold
     );
 
     const receipt = await tx.wait();
