@@ -232,3 +232,44 @@ exports.selectBid = async (req, res) => {
     res.status(500).json({ error: "Failed to select bid" });
   }
 };
+
+// =========================
+// GET MY BIDS
+// =========================
+exports.getMyBids = async (req, res) => {
+  try {
+    const wallet = req.query.wallet;
+    if (!wallet) return res.status(400).json({ error: "Wallet is required" });
+
+    const { data: bids, error } = await supabase
+      .from("bids")
+      .select(`
+        id,
+        total_amount,
+        created_at,
+        project_id,
+        projects (
+          title,
+          location_address
+        )
+      `)
+      .eq("contractor_wallet", wallet)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+
+    const formatted = (bids || []).map(b => ({
+      bid_id: b.id,
+      total_amount: b.total_amount,
+      created_at: b.created_at,
+      project_title: b.projects?.title || "Unknown Project",
+      project_location: b.projects?.location_address || "Unknown Location",
+      status: "Submitted" // Basic status for now
+    }));
+
+    res.json(formatted);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch bids" });
+  }
+};
