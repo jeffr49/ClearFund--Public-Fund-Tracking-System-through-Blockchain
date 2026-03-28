@@ -136,24 +136,90 @@ exports.getContractorProjects = async (req, res) => {
       return res.status(400).json({ error: "wallet query param is required" });
     }
 
-    const { data, error } = await supabase
+    // 1. Fetch all projects for this contractor
+    const { data: projectsData, error: projError } = await supabase
       .from("projects")
       .select("id, title, description, location_address, contract_address, status")
       .eq("contractor_wallet", wallet)
       .order("created_at", { ascending: false });
 
-    if (error) throw error;
+    if (projError) throw projError;
 
-    const projects = (data || []).map((project) => ({
-      project_id: project.id,
-      title: project.title,
-      description: project.description,
-      location: project.location_address,
-      contract_address: project.contract_address,
-      status: project.status
+    if (!projectsData || projectsData.length === 0) {
+      return res.json([]);
+    }
+
+    const projectIds = projectsData.map(p => p.id);
+
+    // 2. Fetch all milestones and events for these projects in batch
+    const [{ data: milestonesData, error: mError }, { data: eventsData, error: eError }] = await Promise.all([
+      supabase
+        .from("milestones")
+        .select("id, project_id, milestone_index, amount")
+        .in("project_id", projectIds),
+      supabase
+        .from("events")
+        .select("project_id, milestone_id, event_type, metadata, created_at")
+        .in("project_id", projectIds)
+        .in("event_type", ["PROOF_SUBMITTED", "MILESTONE_APPROVED", "FUNDS_RELEASED"])
+        .order("created_at", { ascending: true })
+    ]);
+
+    if (mError) throw mError;
+    if (eError) throw eError;
+
+    // 3. Process data per project
+    const results = await Promise.all(projectsData.map(async (project) => {
+      const pMilestones = (milestonesData || []).filter(m => m.project_id === project.id);
+      const pEvents = (eventsData || []).filter(e => e.project_id === project.id);
+      
+      const eventsByMilestone = new Map();
+      for (const event of pEvents) {
+        const key = Number(event.milestone_id);
+        if (!eventsByMilestone.has(key)) eventsByMilestone.set(key, []);
+        eventsByMilestone.get(key).push(event);
+      }
+
+      const approvalThreshold = await getApprovalThreshold(project.contract_address);
+      
+      const normalizedMilestones = pMilestones.map(m => 
+        normalizeMilestone(m, eventsByMilestone.get(m.milestone_index) || [], approvalThreshold)
+      );
+
+      const approvedCount = normalizedMilestones.filter(m => m.status === "APPROVED").length;
+      const currentMilestone = normalizedMilestones.find(m => m.status !== "APPROVED");
+
+      const totalBudgetInr = normalizedMilestones.reduce(
+        (sum, m) => sum + BigInt(Math.round(Number(m.amount || 0))),
+        0n
+      );
+
+      const fundsReleasedInr = uniqueFundsReleaseEvents(pEvents)
+        .reduce((sum, event) => {
+          const value = event?.metadata?.amount;
+          if (!value) return sum;
+          try { return sum + BigInt(value); } catch (_error) { return sum; }
+        }, 0n);
+
+      return {
+        project_id: project.id,
+        title: project.title,
+        description: project.description,
+        location: project.location_address,
+        contract_address: project.contract_address,
+        status: project.status,
+        progress: {
+          approval_threshold: approvalThreshold,
+          current_milestone: currentMilestone || null,
+          total_milestones: normalizedMilestones.length,
+          approved_milestones: approvedCount,
+          funds_released_inr: fundsReleasedInr.toString(),
+          total_budget_inr: totalBudgetInr.toString()
+        }
+      };
     }));
 
-    return res.json(projects);
+    return res.json(results);
   } catch (err) {
     console.error("getContractorProjects error:", err);
     return res.status(500).json({ error: "Failed to fetch contractor projects" });
