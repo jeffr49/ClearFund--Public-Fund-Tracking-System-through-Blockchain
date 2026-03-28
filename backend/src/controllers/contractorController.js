@@ -301,8 +301,23 @@ exports.getContractorStats = async (req, res) => {
 
     if (eventsError) throw eventsError;
 
+    // 4. Fetch ongoing projects from project_approvers
+    const { data: ongoingApprovals, error: ongoingError } = await supabase
+      .from("project_approvers")
+      .select("project_id")
+      .in("project_id", projectIds);
+
+    if (ongoingError) throw ongoingError;
+
     // Calculate stats
+    const ongoing_project_ids = new Set((ongoingApprovals || []).map(a => a.project_id));
     const completed_projects = projects.filter(p => p.status === 'completed').length;
+    
+    // Ongoing is any project that exists in project_approvers but is NOT status 'completed'
+    const ongoing_projects = projects.filter(p => 
+      ongoing_project_ids.has(p.id) && p.status !== 'completed'
+    ).length;
+
     const total_milestones = milestones.length;
     
     let on_time_count = 0;
@@ -342,6 +357,7 @@ exports.getContractorStats = async (req, res) => {
     const stats = {
         total_projects: projects.length,
         completed_projects,
+        ongoing_projects,
         total_milestones,
         on_time_milestones: on_time_count,
         delayed_milestones: delayed_count,

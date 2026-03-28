@@ -170,12 +170,6 @@ export default function MyBidsPage() {
             <h1 style={{ fontSize: "2.25rem", fontWeight: "800", color: "var(--text-primary)" }}>My Proposal Portfolio</h1>
             <p style={{ color: "var(--text-secondary)", fontSize: "1.1rem" }}>Monitor the real-time status of your submitted bids across the platform.</p>
           </div>
-          {wallet && (
-            <div style={{ padding: "8px 16px", background: "var(--bg-secondary)", borderRadius: "10px", border: "1px solid var(--border-color)", fontSize: "0.85rem", fontWeight: "600" }}>
-                <i className="fa-solid fa-wallet" style={{ color: "var(--primary-color)", marginRight: "8px" }}></i>
-                {wallet.slice(0, 6)}...{wallet.slice(-4)}
-            </div>
-          )}
         </header>
 
         {loading ? (
