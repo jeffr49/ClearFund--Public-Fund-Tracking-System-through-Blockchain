@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { API_BASE } from "@/lib/backend";
 import MetaMaskConnect from "@/components/wallet/MetaMaskConnect";
 import ProfileMenu from "@/components/ProfileMenu/ProfileMenu";
+import ChatButton from "@/components/chat/ChatButton";
 
 const ProjectsMap = dynamic(() => import("./ProjectsMap"), {
   ssr: false,
@@ -116,6 +117,7 @@ export default function ProjectsLedgerOverview({
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
+            <ChatButton />
             {showWalletConnect && <MetaMaskConnect />}
             <ProfileMenu />
           </div>
