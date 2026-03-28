@@ -3,18 +3,9 @@
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { formatEther } from "ethers";
-import {
-  Folder,
-  Coins,
-  LogOut,
-  Loader,
-  Gavel,
-  Check,
-  Search,
-  Activity
-} from "lucide-react";
 import { API_BASE } from "@/lib/backend";
 import MetaMaskConnect from "@/components/wallet/MetaMaskConnect";
+import ProfileMenu from "@/components/ProfileMenu/ProfileMenu";
 
 const ProjectsMap = dynamic(() => import("./ProjectsMap"), {
   ssr: false,
@@ -29,7 +20,7 @@ const ProjectsMap = dynamic(() => import("./ProjectsMap"), {
         color: "var(--text-secondary)"
       }}
     >
-      Loading map…
+      <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: 10 }}></i> Loading map…
     </div>
   )
 });
@@ -57,7 +48,7 @@ function formatEthWei(weiStr) {
 
 export default function ProjectsLedgerOverview({
   pageTitle = "Public Projects Ledger",
-  subtitle = "Live data from ClearFund database — on-chain releases shown in ETH.",
+  subtitle = "Real-time blockchain-verified tracking of public funds and project milestones.",
   showWalletConnect = false
 }) {
   const [raw, setRaw] = useState(null);
@@ -108,32 +99,20 @@ export default function ProjectsLedgerOverview({
       <nav className="navbar">
         <div className="nav-container">
           <div className="logo">
-            <span style={{ marginRight: 8 }}>⛓</span> ClearFund
+            <i className="fa-solid fa-link"></i> ClearFund
           </div>
-          <div
-            className="nav-controls"
-            style={{ display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}
-          >
-            <div className="search-bar">
-              <Search
-                size={18}
-                style={{
-                  position: "absolute",
-                  left: "1.2rem",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  color: "var(--text-secondary)"
-                }}
-              />
+          <div className="nav-controls" style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+            <div className="search-bar center-search">
+              <i className="fa-solid fa-search"></i>
               <input
-                type="search"
-                placeholder="Search projects by name or location…"
+                type="text"
+                placeholder="Search projects by name or keyword..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                style={{ paddingLeft: "2.8rem" }}
               />
             </div>
-            {showWalletConnect ? <MetaMaskConnect /> : null}
+            {showWalletConnect && <MetaMaskConnect />}
+            <ProfileMenu />
           </div>
         </div>
         <div className="filters-bar">
@@ -144,7 +123,7 @@ export default function ProjectsLedgerOverview({
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
-              <option value="">All statuses</option>
+              <option value="">All Statuses</option>
               <option value="ongoing">Ongoing</option>
               <option value="bidding">Bidding</option>
               <option value="completed">Completed</option>
@@ -159,19 +138,19 @@ export default function ProjectsLedgerOverview({
           <p>{subtitle}</p>
         </header>
 
-        {error ? (
+        {error && (
           <div className="empty-state" style={{ marginBottom: "1.5rem" }}>
             <h3>Could not load data</h3>
             <p>{error}</p>
           </div>
-        ) : null}
+        )}
 
         {loading ? (
           <div className="stats-bar">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div key={i} className="stat-card" style={{ opacity: 0.6 }}>
                 <div className="stat-icon grey">
-                  <Loader size={20} />
+                  <i className="fa-solid fa-spinner fa-spin"></i>
                 </div>
                 <div className="stat-info">
                   <span>Loading</span>
@@ -184,7 +163,7 @@ export default function ProjectsLedgerOverview({
           <div className="stats-bar">
             <div className="stat-card">
               <div className="stat-icon grey">
-                <Folder size={20} />
+                <i className="fa-solid fa-folder"></i>
               </div>
               <div className="stat-info">
                 <span>Total Projects</span>
@@ -193,7 +172,7 @@ export default function ProjectsLedgerOverview({
             </div>
             <div className="stat-card">
               <div className="stat-icon blue">
-                <Coins size={20} />
+                <i className="fa-solid fa-coins"></i>
               </div>
               <div className="stat-info">
                 <span>Total Budget</span>
@@ -202,7 +181,7 @@ export default function ProjectsLedgerOverview({
             </div>
             <div className="stat-card">
               <div className="stat-icon green">
-                <LogOut size={20} />
+                <i className="fa-solid fa-right-from-bracket"></i>
               </div>
               <div className="stat-info">
                 <span>Funds Released</span>
@@ -211,7 +190,7 @@ export default function ProjectsLedgerOverview({
             </div>
             <div className="stat-card">
               <div className="stat-icon blue">
-                <Activity size={20} />
+                <i className="fa-solid fa-spinner fa-spin"></i>
               </div>
               <div className="stat-info">
                 <span>Ongoing</span>
@@ -220,7 +199,7 @@ export default function ProjectsLedgerOverview({
             </div>
             <div className="stat-card">
               <div className="stat-icon red">
-                <Gavel size={20} />
+                <i className="fa-solid fa-gavel"></i>
               </div>
               <div className="stat-info">
                 <span>Bidding</span>
@@ -229,7 +208,7 @@ export default function ProjectsLedgerOverview({
             </div>
             <div className="stat-card">
               <div className="stat-icon green">
-                <Check size={20} />
+                <i className="fa-solid fa-check"></i>
               </div>
               <div className="stat-info">
                 <span>Completed</span>
@@ -242,27 +221,20 @@ export default function ProjectsLedgerOverview({
         <div className="map-wrapper">
           <ProjectsMap projects={filteredProjects} />
           <div className="map-legend">
-            <div className="legend-item">
-              <span className="legend-dot ongoing" /> Ongoing
-            </div>
-            <div className="legend-item">
-              <span className="legend-dot bidding" /> Bidding
-            </div>
-            <div className="legend-item">
-              <span className="legend-dot completed" /> Completed
-            </div>
+            <div className="legend-item"><span className="legend-dot ongoing"></span> Ongoing</div>
+            <div className="legend-item"><span className="legend-dot bidding"></span> Bidding</div>
+            <div className="legend-item"><span className="legend-dot completed"></span> Completed</div>
           </div>
         </div>
 
         <div className="results-row">
           <p className="project-count">
-            Showing <strong>{filteredProjects.length}</strong> of{" "}
-            <strong>{raw?.projects?.length ?? 0}</strong> projects
+            Showing <strong>{filteredProjects.length}</strong> of <strong>{raw?.projects?.length ?? 0}</strong> projects
           </p>
         </div>
 
         <div className="project-grid">
-          {filteredProjects.length === 0 && !loading ? (
+          {filteredProjects.length === 0 && !loading && (
             <div className="empty-state">
               <h3>No projects found</h3>
               <p style={{ color: "var(--text-secondary)" }}>
@@ -271,7 +243,7 @@ export default function ProjectsLedgerOverview({
                   : "Try adjusting search or status filter."}
               </p>
             </div>
-          ) : null}
+          )}
 
           {filteredProjects.map((p) => {
             const total = p.total_milestones || 0;
@@ -285,13 +257,7 @@ export default function ProjectsLedgerOverview({
                       cls += " current";
                     return <div key={i} className={cls} />;
                   })
-                : [
-                    <div
-                      key="na"
-                      className="progress-segment"
-                      style={{ flex: 1 }}
-                    />
-                  ];
+                : [<div key="na" className="progress-segment" style={{ flex: 1 }} />];
 
             return (
               <div key={p.id} className="card" style={{ cursor: "default" }}>
@@ -299,6 +265,7 @@ export default function ProjectsLedgerOverview({
                   <div>
                     <h3 className="card-title">{p.title}</h3>
                     <div className="card-meta">
+                      <i className="fa-solid fa-location-dot" style={{ marginRight: 6 }}></i>
                       {p.location_address || "No address"}
                     </div>
                   </div>
@@ -322,6 +289,7 @@ export default function ProjectsLedgerOverview({
                 </div>
                 <div className="status-snapshot">
                   <strong>Funds released (on-chain)</strong>
+                  <i className="fa-brands fa-ethereum" style={{ marginRight: 8, color: "var(--accent-blue)" }}></i>
                   {formatEthWei(p.funds_released_wei)}
                 </div>
                 <div className="status-snapshot" style={{ marginTop: "0.5rem" }}>

@@ -49,7 +49,7 @@ const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
 /** Maps UI selection to `users.role` in Supabase */
 function resolveDbRole(selectedRole, selectedSubRole) {
   if (selectedRole === "government") {
-    if (selectedSubRole === "agency") return "government";
+    if (selectedSubRole === "government") return "government";
     if (selectedSubRole === "approver") return "approver";
   }
   if (selectedRole === "contractor") return "contractor";
@@ -63,7 +63,7 @@ const ROLES = [
     label: "Government / Approvers",
     icon: Icons.Bank,
     subRoles: [
-      { id: "agency", label: "Government Administrator", route: "/gov" },
+      { id: "government", label: "Government Administrator", route: "/gov" },
       { id: "approver", label: "Independent Approver", route: "/approver" }
     ]
   },
@@ -175,22 +175,16 @@ export default function LoginCard() {
         }
       }
 
-      const role = ROLES.find((r) => r.id === selectedRole);
-      if (role) {
-        let routePath = "";
-        if (role.subRoles) {
-          const sub = role.subRoles.find((s) => s.id === selectedSubRole);
-          if (sub) routePath = sub.route;
-        } else {
-          routePath = role.route;
+      const roleData = ROLES.find((r) => r.id === selectedRole);
+      if (roleData) {
+        let roleId = roleData.id;
+        if (roleData.subRoles) {
+          const sub = roleData.subRoles.find((s) => s.id === selectedSubRole);
+          if (sub) roleId = sub.id;
         }
 
-        if (routePath) {
-          if (routePath.startsWith("http") || routePath.startsWith("/dashboard")) {
-            window.location.href = routePath;
-          } else {
-            router.push(routePath);
-          }
+        if (roleId) {
+          router.push(`/gate?role=${roleId}`);
         }
       }
     } catch (_err) {

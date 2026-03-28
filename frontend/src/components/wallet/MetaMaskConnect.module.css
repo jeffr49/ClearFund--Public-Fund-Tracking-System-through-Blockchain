@@ -14,6 +14,7 @@
   font-weight: 600;
   cursor: pointer;
   font-size: 0.875rem;
+  transition: background 0.2s;
 }
 
 .btn:hover {
@@ -30,7 +31,32 @@
   border: 1px solid #e2e8f0;
 }
 
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.35rem 0.7rem;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.verified {
+  background: rgba(22, 163, 74, 0.1);
+  color: #16a34a;
+  border: 1px solid rgba(22, 163, 74, 0.2);
+}
+
+.unverified {
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+  border: 1px solid rgba(220, 38, 38, 0.2);
+}
+
 .err {
   font-size: 0.8rem;
+  font-weight: 500;
   color: #b91c1c;
 }

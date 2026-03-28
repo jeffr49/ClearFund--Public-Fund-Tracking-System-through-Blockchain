@@ -1,5 +1,5 @@
 import { Inter } from "next/font/google";
-import "./dashboard.css";
+import "./pretty-dashboard.css";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -8,8 +8,14 @@ const inter = Inter({
 
 export default function SidebarSegmentLayout({ children }) {
   return (
-    <div className={`${inter.className} clearfund-sidebar-root`}>
-      {children}
-    </div>
+    <>
+      <link 
+        rel="stylesheet" 
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
+      />
+      <div className={`${inter.className} clearfund-sidebar-root`}>
+        {children}
+      </div>
+    </>
   );
 }
