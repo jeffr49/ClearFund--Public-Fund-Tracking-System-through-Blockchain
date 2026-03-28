@@ -508,6 +508,32 @@ export default function ProjectsLedgerOverview({
                     {new Date(p.project_deadline).toLocaleDateString()}
                   </div>
                 )}
+
+                {/* Milestone Proofs */}
+                {p.milestones && p.milestones.some(m => m.proofs?.length > 0) && (
+                    <div className="proofs-section" style={{ marginTop: "1rem", paddingTop: "1rem", borderTop: "1px dashed var(--border-color)" }}>
+                        <strong style={{ fontSize: "0.85rem", color: "var(--text-secondary)", display: "block", marginBottom: "0.5rem" }}>Attached Evidence</strong>
+                        {p.milestones.filter(m => m.proofs?.length > 0).map(m => (
+                            <div key={m.milestone_index} style={{ marginBottom: "0.5rem", fontSize: "0.85rem" }}>
+                                <span style={{ fontWeight: "600", color: "var(--text-primary)" }}>Milestone {m.milestone_index + 1}:</span>
+                                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "4px" }}>
+                                    {m.proofs.map((proofObj, i) => {
+                                        const { hash, status } = proofObj;
+                                        let bg = "#f1f5f9", text = "#475569", border = "#cbd5e1", icon = "fa-file", label = "Pending";
+                                        if (status === "Accepted") { bg = "#f0fdf4"; text = "#16a34a"; border = "#bbf7d0"; icon = "fa-check-circle"; label = "Accepted"; }
+                                        else if (status === "Rejected") { bg = "#fef2f2"; text = "#dc2626"; border = "#fecaca"; icon = "fa-times-circle"; label = "Rejected"; }
+                                        
+                                        return (
+                                          <a key={i} href={`https://gateway.pinata.cloud/ipfs/${hash}`} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "4px 8px", background: bg, color: text, borderRadius: "6px", textDecoration: "none", border: `1px solid ${border}`, fontSize: "0.75rem", transition: "all 0.2s" }} onMouseOver={(e) => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.05)" }} onMouseOut={(e) => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "none" }} title={`${label} File`}>
+                                              <i className={`fa-solid ${icon}`}></i> {label} File
+                                          </a>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
               </div>
             );
           })}

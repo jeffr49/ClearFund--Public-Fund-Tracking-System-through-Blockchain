@@ -116,24 +116,71 @@ exports.getProjectsOverview = async (req, res) => {
   try {
     const [
       { data: projects, error: projectsError },
-      { data: fundEvents, error: fundError },
+      { data: allEvents, error: eventsError },
       { data: milestoneRows, error: msError }
     ] = await Promise.all([
       supabase.from("projects").select("*").order("created_at", { ascending: false }),
       supabase
         .from("events")
-        .select("project_id, metadata")
-        .eq("event_type", "FUNDS_RELEASED"),
+        .select("project_id, milestone_id, event_type, metadata, created_at")
+        .in("event_type", ["FUNDS_RELEASED", "PROOF_SUBMITTED", "MILESTONE_APPROVED", "MILESTONE_REJECTED", "DEADLINE_EXTENDED"])
+        .order("created_at", { ascending: true }),
       supabase
         .from("milestones")
         .select("project_id, milestone_index, title, description, deadline")
     ]);
 
     if (projectsError) throw projectsError;
-    if (fundError) throw fundError;
+    if (eventsError) throw eventsError;
     if (msError) throw msError;
 
-    const uniqueFundEvents = uniqueFundsReleaseEvents(fundEvents || []);
+    const fundEvents = (allEvents || []).filter(e => e.event_type === "FUNDS_RELEASED");
+
+    const uniqueFundEvents = uniqueFundsReleaseEvents(fundEvents);
+
+    // Group events and parse proof statuses
+    const proofsByProject = new Map();
+    const pidGroups = new Map();
+    for (const e of allEvents || []) {
+       if (e.project_id === null || e.milestone_id === null) continue;
+       const pid = e.project_id;
+       const mIdx = Number(e.milestone_id);
+       if (!pidGroups.has(pid)) pidGroups.set(pid, new Map());
+       if (!pidGroups.get(pid).has(mIdx)) pidGroups.get(pid).set(mIdx, []);
+       pidGroups.get(pid).get(mIdx).push(e);
+    }
+
+    for (const [pid, projMap] of pidGroups.entries()) {
+       const pProofs = new Map();
+       proofsByProject.set(pid, pProofs);
+       for (const [mIdx, evs] of projMap.entries()) {
+          const categorizedHashes = [];
+          for (let i = 0; i < evs.length; i++) {
+             const ev = evs[i];
+             if (ev.event_type !== "PROOF_SUBMITTED" || !ev.metadata?.ipfsHash) continue;
+             
+             let status = "Pending";
+             for (let j = i + 1; j < evs.length; j++) {
+                const nextEv = evs[j];
+                if (nextEv.event_type === "MILESTONE_REJECTED" || nextEv.event_type === "DEADLINE_EXTENDED") {
+                   status = "Rejected"; break;
+                }
+                if (nextEv.event_type === "MILESTONE_APPROVED" || nextEv.event_type === "FUNDS_RELEASED") {
+                   status = "Accepted"; break;
+                }
+             }
+
+             const hashes = ev.metadata.ipfsHash.split(",").map(h => h.trim()).filter(Boolean);
+             for (const hash of hashes) {
+               // Prevent duplicates by checking array
+               if (!categorizedHashes.some(ch => ch.hash === hash)) {
+                  categorizedHashes.push({ hash, status });
+               }
+             }
+          }
+          pProofs.set(mIdx, categorizedHashes);
+       }
+    }
 
     // FUNDS_RELEASED metadata.amount = whole INR (on-chain milestone amount; bank payout is off-chain)
     const fundsInrByProject = new Map();
@@ -173,11 +220,22 @@ exports.getProjectsOverview = async (req, res) => {
       if (!milestonesByProject.has(row.project_id)) {
         milestonesByProject.set(row.project_id, []);
       }
+
+      const mIdx = row.milestone_index;
+      let proofs = [];
+      if (proofsByProject.has(row.project_id)) {
+          const mProofs = proofsByProject.get(row.project_id);
+          if (mProofs.has(mIdx)) {
+              proofs = [...new Set(mProofs.get(mIdx))];
+          }
+      }
+
       milestonesByProject.get(row.project_id).push({
-        milestone_index: row.milestone_index,
+        milestone_index: mIdx,
         title: row.title,
         description: row.description,
-        deadline: row.deadline
+        deadline: row.deadline,
+        proofs
       });
     }
     for (const arr of milestonesByProject.values()) {
