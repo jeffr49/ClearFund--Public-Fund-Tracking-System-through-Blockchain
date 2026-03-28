@@ -527,7 +527,7 @@ export default function ProjectsLedgerOverview({
                         <strong style={{ fontSize: "0.7rem", color: "var(--text-secondary)", display: "block", marginBottom: "0.75rem", fontFamily: "'JetBrains Mono', monospace", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: "800" }}>Evidence Logs / On-Chain Datalinks</strong>
                         {p.milestones.filter(m => m.proofs?.length > 0).map(m => (
                             <div key={m.milestone_index} style={{ marginBottom: "0.75rem", fontSize: "0.75rem" }}>
-                                <span style={{ fontWeight: "800", color: "var(--text-primary)", fontFamily: "'JetBrains Mono', monospace", textTransform: "uppercase" }}>MODULE {m.milestone_index + 1}:</span>
+                                <span style={{ fontWeight: "800", color: "var(--text-primary)", fontFamily: "'JetBrains Mono', monospace", textTransform: "uppercase" }}>MILESTONE {m.milestone_index + 1}:</span>
                                 <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", marginTop: "6px" }}>
                                     {m.proofs.map((proofObj, i) => {
                                         const { hash, status } = proofObj;
