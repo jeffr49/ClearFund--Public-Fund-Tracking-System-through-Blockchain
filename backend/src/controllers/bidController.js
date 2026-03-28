@@ -69,9 +69,8 @@ function buildBidMilestonePayload(incoming, templateSorted) {
   return { lines: out, sum };
 }
 
-// =========================
-// SUBMIT BID
-// =========================
+const { generateBidId } = require("../utils/idGenerator");
+
 exports.submitBid = async (req, res) => {
   try {
     const { projectId, totalAmount, milestones, wallet } = req.body;
@@ -132,8 +131,10 @@ exports.submitBid = async (req, res) => {
       });
     }
 
+    const refId = generateBidId(projectId);
     const { error: insertError } = await supabase.from("bids").insert([
       {
+        id: refId,
         project_id: projectId,
         contractor_wallet: wallet,
         total_amount: totalAmount,
@@ -142,7 +143,7 @@ exports.submitBid = async (req, res) => {
     ]);
     if (insertError) throw insertError;
 
-    res.json({ success: true });
+    res.json({ success: true, bidReference: refId });
 
   } catch (err) {
     console.error(err);
