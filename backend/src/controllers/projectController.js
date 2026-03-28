@@ -94,6 +94,21 @@ function displayStatus(dbStatus) {
   return "bidding";
 }
 
+function uniqueFundsReleaseEvents(events) {
+  const seenMilestones = new Set();
+  const uniqueEvents = [];
+
+  for (const event of events || []) {
+    const key = `${event.project_id || ""}-${Number(event.milestone_id)}`;
+    if (seenMilestones.has(key)) continue;
+
+    seenMilestones.add(key);
+    uniqueEvents.push(event);
+  }
+
+  return uniqueEvents;
+}
+
 // =========================
 // OVERVIEW (stats + projects for map / grid)
 // =========================
@@ -118,11 +133,13 @@ exports.getProjectsOverview = async (req, res) => {
     if (fundError) throw fundError;
     if (msError) throw msError;
 
+    const uniqueFundEvents = uniqueFundsReleaseEvents(fundEvents || []);
+
     // FUNDS_RELEASED metadata.amount = whole INR (on-chain milestone amount; bank payout is off-chain)
     const fundsInrByProject = new Map();
     let totalReleasedInr = 0n;
 
-    for (const ev of fundEvents || []) {
+    for (const ev of uniqueFundEvents) {
       const raw = ev.metadata?.amount;
       if (raw === undefined || raw === null) continue;
       try {
@@ -137,7 +154,7 @@ exports.getProjectsOverview = async (req, res) => {
     }
 
     const releasedCountByProject = new Map();
-    for (const ev of fundEvents || []) {
+    for (const ev of uniqueFundEvents) {
       if (!ev.project_id) continue;
       releasedCountByProject.set(
         ev.project_id,

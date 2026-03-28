@@ -36,6 +36,23 @@ async function persistEvent(payload) {
   }
 }
 
+async function hasRecordedFundsRelease(projectId, milestoneId) {
+  const { data, error } = await supabase
+    .from("events")
+    .select("id")
+    .eq("project_id", projectId)
+    .eq("event_type", "FUNDS_RELEASED")
+    .eq("milestone_id", milestoneId)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return Boolean(data);
+}
+
 exports.listenToProject = (projectId, contractAddress) => {
   if (activeListeners.has(contractAddress)) return;
 
@@ -151,11 +168,21 @@ exports.listenToProject = (projectId, contractAddress) => {
       const eventKey = buildEventKey(contractAddress, eventLog);
       if (eventKey && seenEventKeys.has(eventKey)) return;
 
+      const numericMilestoneId = Number(milestoneId);
+      const alreadyRecorded = await hasRecordedFundsRelease(
+        projectId,
+        numericMilestoneId
+      );
+      if (alreadyRecorded) {
+        if (eventKey) seenEventKeys.add(eventKey);
+        return;
+      }
+
       await persistEvent({
         project_id: projectId,
         contract_address: contractAddress,
         event_type: "FUNDS_RELEASED",
-        milestone_id: Number(milestoneId),
+        milestone_id: numericMilestoneId,
         actor: "system",
         metadata: {
           amount: amount.toString(),
@@ -166,7 +193,7 @@ exports.listenToProject = (projectId, contractAddress) => {
 
       if (eventKey) seenEventKeys.add(eventKey);
 
-      const numId = Number(milestoneId);
+      const numId = numericMilestoneId;
       const { error: updErr1 } = await supabase
         .from("milestones")
         .update({ status: 'completed' })

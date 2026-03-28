@@ -101,6 +101,23 @@ function normalizeMilestone(row, milestoneEvents, approvalThreshold) {
   };
 }
 
+function uniqueFundsReleaseEvents(events) {
+  const seenMilestones = new Set();
+  const uniqueEvents = [];
+
+  for (const event of events || []) {
+    if (event.event_type !== "FUNDS_RELEASED") continue;
+
+    const key = `${event.project_id || ""}-${Number(event.milestone_id)}`;
+    if (seenMilestones.has(key)) continue;
+
+    seenMilestones.add(key);
+    uniqueEvents.push(event);
+  }
+
+  return uniqueEvents;
+}
+
 exports.getContractorProjects = async (req, res) => {
   try {
     const wallet = req.query.wallet;
@@ -196,8 +213,7 @@ exports.getProjectDetails = async (req, res) => {
       0n
     );
 
-    const fundsReleasedInr = (events || [])
-      .filter((event) => event.event_type === "FUNDS_RELEASED")
+    const fundsReleasedInr = uniqueFundsReleaseEvents(events || [])
       .reduce((sum, event) => {
         const value = event?.metadata?.amount;
         if (!value) return sum;
