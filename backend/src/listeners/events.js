@@ -25,6 +25,11 @@ function getEventLogDetails(eventPayload) {
   return { txHash, logIndex };
 }
 
+function hasConcreteEventLog(eventPayload) {
+  const { txHash, logIndex } = getEventLogDetails(eventPayload);
+  return Boolean(txHash) && logIndex !== null;
+}
+
 function buildEventKey(contractAddress, eventLog) {
   const { txHash, logIndex } = getEventLogDetails(eventLog);
   if (!txHash || logIndex === null) {
@@ -34,6 +39,28 @@ function buildEventKey(contractAddress, eventLog) {
 }
 
 async function persistEvent(payload) {
+  const requiresConcreteLog = new Set([
+    "PROOF_SUBMITTED",
+    "MILESTONE_APPROVED",
+    "MILESTONE_REJECTED",
+    "FUNDS_RELEASED",
+    "DEADLINE_EXTENDED"
+  ]);
+
+  if (requiresConcreteLog.has(payload?.event_type)) {
+    const txHash = payload?.metadata?.txHash || null;
+    const logIndex =
+      payload?.metadata?.logIndex === undefined || payload?.metadata?.logIndex === null
+        ? null
+        : String(payload.metadata.logIndex);
+
+    if (!txHash || logIndex === null) {
+      throw new Error(
+        `Refusing to persist ${payload.event_type} without txHash/logIndex`
+      );
+    }
+  }
+
   for (let attempt = 1; attempt <= INSERT_RETRIES; attempt++) {
     const { error } = await supabase.from("events").insert([payload]);
 
@@ -104,6 +131,10 @@ exports.listenToProject = (projectId, contractAddress) => {
   // =========================
   contract.on("ProofSubmitted", async (milestoneId, ipfsHash, eventLog) => {
     try {
+      if (!hasConcreteEventLog(eventLog)) {
+        console.warn("Skipping ProofSubmitted without concrete log details");
+        return;
+      }
       const eventKey = buildEventKey(contractAddress, eventLog);
       if (eventKey && seenEventKeys.has(eventKey)) return;
       if (await hasRecordedEventLog(eventLog)) {
@@ -149,6 +180,10 @@ exports.listenToProject = (projectId, contractAddress) => {
   // =========================
   contract.on("MilestoneApproved", async (milestoneId, approver, eventLog) => {
     try {
+      if (!hasConcreteEventLog(eventLog)) {
+        console.warn("Skipping MilestoneApproved without concrete log details");
+        return;
+      }
       const eventKey = buildEventKey(contractAddress, eventLog);
       if (eventKey && seenEventKeys.has(eventKey)) return;
       if (await hasRecordedEventLog(eventLog)) {
@@ -182,6 +217,10 @@ exports.listenToProject = (projectId, contractAddress) => {
   // =========================
   contract.on("MilestoneRejected", async (milestoneId, approver, eventLog) => {
     try {
+      if (!hasConcreteEventLog(eventLog)) {
+        console.warn("Skipping MilestoneRejected without concrete log details");
+        return;
+      }
       const eventKey = buildEventKey(contractAddress, eventLog);
       if (eventKey && seenEventKeys.has(eventKey)) return;
       if (await hasRecordedEventLog(eventLog)) {
@@ -215,6 +254,10 @@ exports.listenToProject = (projectId, contractAddress) => {
   // =========================
   contract.on("FundsReleased", async (milestoneId, amount, eventLog) => {
     try {
+      if (!hasConcreteEventLog(eventLog)) {
+        console.warn("Skipping FundsReleased without concrete log details");
+        return;
+      }
       const eventKey = buildEventKey(contractAddress, eventLog);
       if (eventKey && seenEventKeys.has(eventKey)) return;
       if (await hasRecordedEventLog(eventLog)) {
@@ -289,6 +332,10 @@ exports.listenToProject = (projectId, contractAddress) => {
   // =========================
   contract.on("DeadlineExtended", async (milestoneId, newDeadline, eventLog) => {
     try {
+      if (!hasConcreteEventLog(eventLog)) {
+        console.warn("Skipping DeadlineExtended without concrete log details");
+        return;
+      }
       const eventKey = buildEventKey(contractAddress, eventLog);
       if (eventKey && seenEventKeys.has(eventKey)) return;
       if (await hasRecordedEventLog(eventLog)) {
