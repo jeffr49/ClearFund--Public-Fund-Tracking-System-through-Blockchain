@@ -275,3 +275,52 @@
   border: 1px solid rgba(39, 174, 96, 0.3);
   color: var(--success, #27ae60);
 }
+
+/* Map Pin Styles */
+.mapPinIcon {
+  background: transparent !important;
+  border: none !important;
+  width: 26px !important;
+  height: 38px !important;
+  overflow: visible !important;
+}
+
+:global(.map-pin-shell) {
+  width: 26px;
+  height: 38px;
+  position: relative;
+  display: block;
+  z-index: 1000;
+}
+
+:global(.map-pin-core) {
+  width: 14px;
+  height: 14px;
+  background: var(--error, #ff4757);
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(255, 71, 87, 0.6), 0 0 0 4px rgba(255, 71, 87, 0.2);
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  animation: map-pin-pulse 1.5s infinite;
+}
+
+:global(.map-pin-core)::after {
+  content: '';
+  position: absolute;
+  bottom: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 15px;
+  background: var(--error, #ff4757);
+  box-shadow: 0 0 4px rgba(255, 71, 87, 0.4);
+}
+
+@keyframes map-pin-pulse {
+  0% { transform: scale(1) translateX(-50%); opacity: 1; }
+  50% { transform: scale(1.2) translateX(-42%); opacity: 0.9; }
+  100% { transform: scale(1) translateX(-50%); opacity: 1; }
+}

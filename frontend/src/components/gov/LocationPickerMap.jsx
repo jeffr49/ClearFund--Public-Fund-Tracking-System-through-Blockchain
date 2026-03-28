@@ -203,6 +203,7 @@ export default function LocationPickerMap({ disabled, onConfirm, onClear }) {
     setPendingPlace(null);
     setSelectedPoint(null);
     setDetailsError("");
+    setSearchText("");
     onClear?.();
   }
 
@@ -252,6 +253,7 @@ export default function LocationPickerMap({ disabled, onConfirm, onClear }) {
           minZoom={3}
           scrollWheelZoom
           className={styles.mapCanvas}
+          style={{ height: "400px", width: "100%" }}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -278,7 +280,7 @@ export default function LocationPickerMap({ disabled, onConfirm, onClear }) {
           <p className={styles.mapConfirmText}>
             Longitude: <strong>{pendingPlace.lng}</strong>
           </p>
-          <p className={styles.mapConfirmPrompt}>
+          <p className={styles.mapConfirmPrompt} style={{ fontSize: "0.8rem", fontWeight: "700", color: "var(--text-secondary)", marginTop: "0.5rem" }}>
             Is this correct, and can we proceed to fill the location fields automatically?
           </p>
           <div className={styles.actions}>
@@ -288,7 +290,7 @@ export default function LocationPickerMap({ disabled, onConfirm, onClear }) {
               onClick={handleConfirm}
               disabled={disabled}
             >
-              Use this location
+              Confirm & Proceed
             </button>
             <button
               type="button"
@@ -296,7 +298,7 @@ export default function LocationPickerMap({ disabled, onConfirm, onClear }) {
               onClick={handleResetSelection}
               disabled={disabled}
             >
-              Clear selection
+              Clear Selection
             </button>
           </div>
         </div>

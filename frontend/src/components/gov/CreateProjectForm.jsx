@@ -224,9 +224,9 @@ export default function CreateProjectForm({ ledgerHref = DEFAULT_LEDGER } = {}) 
         <label className={styles.label} htmlFor="cf-address">
           Address / area label
         </label>
-        <input
+        <textarea
           id="cf-address"
-          className={styles.input}
+          className={styles.textarea}
           value={locationAddress}
           onChange={(e) => setLocationAddress(e.target.value)}
           placeholder="e.g. Block 4, Indiranagar, Bengaluru"
