@@ -14,6 +14,9 @@ export default function AvailableProjectsPage() {
   const [activeBidForm, setActiveBidForm] = useState(null);
   const [wallet, setWallet] = useState(null);
 
+  // Track which project IDs already have a bid from this contractor
+  const [biddedProjectIds, setBiddedProjectIds] = useState(new Set());
+
   // Bid State
   const [bidPayload, setBidPayload] = useState({ total: "", milestones: [] });
   const [submissionStatus, setSubmissionStatus] = useState({});
@@ -38,23 +41,33 @@ export default function AvailableProjectsPage() {
     }
     setWallet(user.wallet_address);
 
-    // 2. Fetch Projects
-    async function fetchAvailable() {
+    // 2. Fetch Projects + My Bids concurrently
+    async function fetchData() {
       try {
-        const res = await fetch(`${API_BASE}/projects/overview`);
-        if (!res.ok) throw new Error("Could not fetch the project ledger.");
-        const data = await res.json();
+        const [projRes, bidsRes] = await Promise.all([
+          fetch(`${API_BASE}/projects/overview`),
+          fetch(`${API_BASE}/bids/my?wallet=${encodeURIComponent(user.wallet_address)}`)
+        ]);
 
-        // Filter for projects in bidding phase
-        const available = data.projects?.filter(p => p.display_status === "bidding") || [];
+        if (!projRes.ok) throw new Error("Could not fetch the project ledger.");
+
+        const projData = await projRes.json();
+        const available = projData.projects?.filter(p => p.display_status === "bidding") || [];
         setProjects(available);
+
+        // Cross-reference: build a set of project IDs the contractor has already bid on
+        if (bidsRes.ok) {
+          const myBids = await bidsRes.json();
+          const bidSet = new Set(myBids.map(b => b.project_id));
+          setBiddedProjectIds(bidSet);
+        }
       } catch (err) {
         setError(err.message);
       } finally {
         setLoading(false);
       }
     }
-    fetchAvailable();
+    fetchData();
   }, [router]);
 
   const toggleBidForm = (p) => {
@@ -143,11 +156,15 @@ export default function AvailableProjectsPage() {
       });
 
       if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(errText || "Bid submission crashed on server.");
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || "Bid submission crashed on server.");
       }
 
       setSubmissionStatus({ success: "Bid successfully broadcasted to escrow!" });
+
+      // Mark this project as already bid on
+      setBiddedProjectIds(prev => new Set(prev).add(projectId));
+
       setTimeout(() => setActiveBidForm(null), 2500);
 
     } catch (err) {
@@ -187,7 +204,10 @@ export default function AvailableProjectsPage() {
           </div>
         ) : (
           <div className="avail-list" style={{ display: "grid", gap: "2rem" }}>
-            {projects.map(p => (
+            {projects.map(p => {
+              const alreadyBid = biddedProjectIds.has(p.id);
+
+              return (
               <div key={p.id} className="avail-card" style={{
                 background: "var(--card-bg)",
                 borderRadius: "20px",
@@ -240,6 +260,47 @@ export default function AvailableProjectsPage() {
                 </div>
 
                 <div style={{ padding: "0 2rem 2rem" }}>
+                  {alreadyBid ? (
+                    /* ── Already-bid state ─────────────────────── */
+                    <div style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "1rem",
+                      padding: "1rem",
+                      borderRadius: "12px",
+                      background: "linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)",
+                      border: "1px solid #bbf7d0"
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                        <i className="fa-solid fa-circle-check" style={{ color: "#16a34a", fontSize: "1.25rem" }}></i>
+                        <span style={{ fontWeight: "700", color: "#166534", fontSize: "0.95rem" }}>
+                          Bid Submitted
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => router.push("/contractor/bids")}
+                        style={{
+                          padding: "8px 20px",
+                          borderRadius: "8px",
+                          background: "#166534",
+                          color: "white",
+                          border: "none",
+                          fontWeight: "700",
+                          fontSize: "0.85rem",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          transition: "opacity 0.2s"
+                        }}
+                      >
+                        <i className="fa-solid fa-pen-to-square"></i> View / Edit in My Bids
+                      </button>
+                    </div>
+                  ) : (
+                    /* ── Normal bid flow ───────────────────────── */
+                    <>
                   <button
                     className="avail-toggle-btn"
                     onClick={() => toggleBidForm(p)}
@@ -361,9 +422,12 @@ export default function AvailableProjectsPage() {
                       {submissionStatus.success && <div style={{ color: "#16a34a", marginTop: "1rem", fontWeight: "600", padding: "10px", background: "#dcfce7", borderRadius: "8px" }}><i className="fa-solid fa-circle-check"></i> {submissionStatus.success}</div>}
                     </div>
                   )}
+                    </>
+                  )}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

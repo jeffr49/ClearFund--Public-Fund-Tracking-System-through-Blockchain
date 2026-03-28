@@ -131,6 +131,22 @@ exports.submitBid = async (req, res) => {
       return res.status(400).json({ error: "Invalid bid payload" });
     }
 
+    // ── Duplicate-bid guard ──────────────────────────────────
+    const { data: existingBid, error: dupError } = await supabase
+      .from("bids")
+      .select("id")
+      .eq("project_id", projectId)
+      .eq("contractor_wallet", wallet)
+      .maybeSingle();
+
+    if (dupError) throw dupError;
+    if (existingBid) {
+      return res.status(400).json({
+        error: "You have already submitted a bid for this project."
+      });
+    }
+    // ─────────────────────────────────────────────────────────
+
     const { data: project, error: projectError } = await supabase
       .from("projects")
       .select("maximumBidAmount, status")
@@ -294,11 +310,13 @@ exports.getMyBids = async (req, res) => {
       .select(`
         id,
         total_amount,
+        milestone_data,
         created_at,
         project_id,
         projects (
           title,
-          location_address
+          location_address,
+          status
         )
       `)
       .eq("contractor_wallet", wallet)
@@ -308,16 +326,170 @@ exports.getMyBids = async (req, res) => {
 
     const formatted = (bids || []).map(b => ({
       bid_id: b.id,
+      project_id: b.project_id,
       total_amount: b.total_amount,
+      milestone_data: b.milestone_data,
       created_at: b.created_at,
       project_title: b.projects?.title || "Unknown Project",
       project_location: b.projects?.location_address || "Unknown Location",
-      status: "Submitted" // Basic status for now
+      project_status: (b.projects?.status || "bidding").toLowerCase(),
+      status: "Submitted"
     }));
 
     res.json(formatted);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to fetch bids" });
+  }
+};
+
+
+// =========================
+// UPDATE BID
+// =========================
+exports.updateBid = async (req, res) => {
+  try {
+    const { bidId } = req.params;
+    const { totalAmount, milestones, wallet } = req.body;
+
+    if (!bidId || !wallet || typeof totalAmount !== "number" || !Array.isArray(milestones)) {
+      return res.status(400).json({ error: "Invalid update payload" });
+    }
+
+    // 1. Fetch existing bid
+    const { data: bid, error: bidError } = await supabase
+      .from("bids")
+      .select("id, project_id, contractor_wallet")
+      .eq("id", bidId)
+      .single();
+
+    if (bidError || !bid) {
+      return res.status(404).json({ error: "Bid not found" });
+    }
+
+    // 2. Security: wallet must match
+    if (bid.contractor_wallet.toLowerCase() !== wallet.toLowerCase()) {
+      return res.status(403).json({ error: "You are not authorised to edit this bid." });
+    }
+
+    // 3. Project must still be in bidding phase
+    const { data: project, error: projError } = await supabase
+      .from("projects")
+      .select("maximumBidAmount, status")
+      .eq("id", bid.project_id)
+      .single();
+
+    if (projError || !project) {
+      return res.status(404).json({ error: "Associated project not found" });
+    }
+    if ((project.status || "").toLowerCase() !== "bidding") {
+      return res.status(400).json({ error: "This project is no longer open for bidding. Bids cannot be edited." });
+    }
+
+    // 4. Validate against max budget
+    const maxBid = Number(project.maximumBidAmount ?? project.maximum_bid_amount);
+    if (!Number.isFinite(maxBid) || totalAmount > maxBid) {
+      return res.status(400).json({ error: "Bid too high" });
+    }
+
+    // 5. Validate milestones against template
+    const { data: templateRows, error: tplError } = await supabase
+      .from("milestones")
+      .select("milestone_index, title, description")
+      .eq("project_id", bid.project_id);
+
+    if (tplError) throw tplError;
+    const templateSorted = sortTemplate(templateRows);
+
+    let normalized;
+    try {
+      normalized = buildBidMilestonePayload(milestones, templateSorted);
+    } catch (e) {
+      return res.status(e.status || 400).json({ error: e.message });
+    }
+
+    if (Math.abs(normalized.sum - totalAmount) > 0.02) {
+      return res.status(400).json({
+        error: "Milestone amounts must sum to your total bid (within 0.02 INR)."
+      });
+    }
+
+    // 6. Perform update
+    const { error: updateError } = await supabase
+      .from("bids")
+      .update({
+        total_amount: totalAmount,
+        milestone_data: normalized.lines
+      })
+      .eq("id", bidId);
+
+    if (updateError) throw updateError;
+
+    res.json({ success: true, message: "Bid updated successfully" });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to update bid" });
+  }
+};
+
+
+// =========================
+// DELETE / WITHDRAW BID
+// =========================
+exports.deleteBid = async (req, res) => {
+  try {
+    const { bidId } = req.params;
+    const { wallet } = req.body;
+
+    if (!bidId || !wallet) {
+      return res.status(400).json({ error: "bidId and wallet are required" });
+    }
+
+    // 1. Fetch existing bid
+    const { data: bid, error: bidError } = await supabase
+      .from("bids")
+      .select("id, project_id, contractor_wallet")
+      .eq("id", bidId)
+      .single();
+
+    if (bidError || !bid) {
+      return res.status(404).json({ error: "Bid not found" });
+    }
+
+    // 2. Security: wallet must match
+    if (bid.contractor_wallet.toLowerCase() !== wallet.toLowerCase()) {
+      return res.status(403).json({ error: "You are not authorised to withdraw this bid." });
+    }
+
+    // 3. Project must still be in bidding phase
+    const { data: project, error: projError } = await supabase
+      .from("projects")
+      .select("status")
+      .eq("id", bid.project_id)
+      .single();
+
+    if (projError || !project) {
+      return res.status(404).json({ error: "Associated project not found" });
+    }
+    if ((project.status || "").toLowerCase() !== "bidding") {
+      return res.status(400).json({
+        error: "This project is already active. Bids cannot be withdrawn after selection."
+      });
+    }
+
+    // 4. Delete the bid
+    const { error: deleteError } = await supabase
+      .from("bids")
+      .delete()
+      .eq("id", bidId);
+
+    if (deleteError) throw deleteError;
+
+    res.json({ success: true, message: "Bid withdrawn successfully" });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to withdraw bid" });
   }
 };
