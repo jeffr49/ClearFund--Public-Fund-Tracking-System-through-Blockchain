@@ -1,0 +1,86 @@
+[
+  {
+    "id": "fd98a2f8-0638-4253-a519-90bdf26fd698",
+    "title": "Bridge in front of VIT Chennai",
+    "status": "active",
+    "contractor_wallet": "0x39685443A31A6Bc5F720597d7E5CE6016b5077b6"
+  },
+  {
+    "id": "994749e9-081a-4b29-942b-8b0e7aa10e2d",
+    "title": "Water Tank at Delhi",
+    "status": "active",
+    "contractor_wallet": "0xeb39514933728A6f2Eb67C7DB9944AcdA6caDFA0"
+  },
+  {
+    "id": "26930786-e1c6-47ed-9d46-119346898721",
+    "title": "DUMMYYYY",
+    "status": "active",
+    "contractor_wallet": "0xD30d7187Af142a98a2081E330bAD64FA7627bd40"
+  },
+  {
+    "id": "840c3e3b-c6ce-4da8-a261-b0845e11466a",
+    "title": "Project Test",
+    "status": "active",
+    "contractor_wallet": "0xeb39514933728A6f2Eb67C7DB9944AcdA6caDFA0"
+  },
+  {
+    "id": "bcd63cbc-9cea-45c9-8e1b-59d7336e034a",
+    "title": "Test2",
+    "status": "active",
+    "contractor_wallet": "0xeb39514933728A6f2Eb67C7DB9944AcdA6caDFA0"
+  },
+  {
+    "id": "0dcbda55-1c21-4fb6-940d-19bc18ef402b",
+    "title": "Test3",
+    "status": "active",
+    "contractor_wallet": "0x39685443A31A6Bc5F720597d7E5CE6016b5077b6"
+  },
+  {
+    "id": "e76372e1-91e7-4e34-ace4-7cc0f67227b3",
+    "title": "Test_44",
+    "status": "active",
+    "contractor_wallet": "0xeb39514933728A6f2Eb67C7DB9944AcdA6caDFA0"
+  },
+  {
+    "id": "7b37cce1-0aad-44da-b2fe-fbb687d6b932",
+    "title": "test 5",
+    "status": "completed",
+    "contractor_wallet": "0xeb39514933728A6f2Eb67C7DB9944AcdA6caDFA0"
+  },
+  {
+    "id": "0bbdcab6-e80b-4410-8269-3bb8b9256554",
+    "title": "test 6",
+    "status": "completed",
+    "contractor_wallet": "0x39685443A31A6Bc5F720597d7E5CE6016b5077b6"
+  },
+  {
+    "id": "b7dfdd49-2ecd-4d6c-b222-7898956ec4dd",
+    "title": "test 7",
+    "status": "completed",
+    "contractor_wallet": "0xeb39514933728A6f2Eb67C7DB9944AcdA6caDFA0"
+  },
+  {
+    "id": "528cd1b9-58a4-44c9-aee3-df1970e889b5",
+    "title": "test 8",
+    "status": "active",
+    "contractor_wallet": "0xeb39514933728A6f2Eb67C7DB9944AcdA6caDFA0"
+  },
+  {
+    "id": "b0a75817-ea67-48f0-a873-e5cecc2ab95b",
+    "title": "test 9",
+    "status": "active",
+    "contractor_wallet": "0xeb39514933728A6f2Eb67C7DB9944AcdA6caDFA0"
+  },
+  {
+    "id": "25890b94-110c-40d0-9ed4-edaee2f6a40d",
+    "title": "test 10",
+    "status": "active",
+    "contractor_wallet": "0x39685443A31A6Bc5F720597d7E5CE6016b5077b6"
+  },
+  {
+    "id": "1d6119fb-fdb4-4fe1-a3f5-46ef7d0ec29c",
+    "title": "Project123",
+    "status": "bidding",
+    "contractor_wallet": null
+  }
+]

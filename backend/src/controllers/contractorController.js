@@ -22,11 +22,20 @@ async function getApprovalThreshold(contractAddress) {
 }
 
 function calculateScore(stats) {
-    const { total_milestones, on_time_milestones, completed_projects } = stats;
-    if (total_milestones === 0) return 100; // Perfect score for new contractors
+    const { on_time_milestones, delayed_milestones, rejected_milestones, completed_projects } = stats;
 
-    let score = (on_time_milestones / total_milestones) * 80; // 80% weight on timing
-    score += (completed_projects > 0 ? 20 : 0); // 20% bonus for having completed at least one project
+    // A milestone is 'actioned' once it is either paid out (on-time or delayed)
+    // or formally rejected by the approver.
+    const actioned = on_time_milestones + delayed_milestones + rejected_milestones;
+
+    // No track record of completions or rejections yet → benefit of the doubt
+    if (actioned === 0) return 100;
+
+    // 80% weight on timing/quality: ratio of on-time payouts to all attempts
+    let score = (on_time_milestones / actioned) * 80;
+
+    // 20% weight on project completion velocity
+    score += (completed_projects > 0 ? 20 : 0);
     
     return Math.min(100, Math.round(score));
 }
@@ -385,12 +394,12 @@ exports.getContractorStats = async (req, res) => {
 
     if (milestonesError) throw milestonesError;
 
-    // 3. Fetch all approval events for these projects
+    // 3. Fetch all relevant events for these projects
     const { data: events, error: eventsError } = await supabase
       .from("events")
       .select("project_id, milestone_id, created_at, event_type, metadata")
       .in("project_id", projectIds)
-      .in("event_type", ["MILESTONE_APPROVED", "FUNDS_RELEASED"]);
+      .in("event_type", ["MILESTONE_APPROVED", "FUNDS_RELEASED", "DEADLINE_EXTENDED"]);
 
     if (eventsError) throw eventsError;
 
@@ -403,26 +412,31 @@ exports.getContractorStats = async (req, res) => {
     if (ongoingError) throw ongoingError;
 
     // Calculate stats
-    const ongoing_project_ids = new Set((ongoingApprovals || []).map(a => a.project_id));
     const completed_projects = projects.filter(p => p.status === 'completed').length;
-    
-    // Ongoing is any project that exists in project_approvers but is NOT status 'completed'
-    const ongoing_projects = projects.filter(p => 
-      ongoing_project_ids.has(p.id) && p.status !== 'completed'
-    ).length;
+    // Ongoing are projects that are active/accepted but not finished
+    const ongoing_projects = projects.filter(p => (p.status === 'active' || p.status === 'ongoing')).length;
 
     const total_milestones = milestones.length;
     
     let on_time_count = 0;
     let delayed_count = 0;
+    let rejected_count = 0;
     let total_delay_ms = 0;
     let total_earnings_inr = 0n;
 
     milestones.forEach(ms => {
+        // Did this milestone get paid? 
         const releaseEvent = events.find(e => 
             e.project_id === ms.project_id && 
             Number(e.milestone_id) === ms.milestone_index && 
             e.event_type === "FUNDS_RELEASED"
+        );
+
+        // Was it rejected at some point recently? (DEADLINE_EXTENDED is rejection cycle)
+        const rejectionEvent = events.find(e => 
+            e.project_id === ms.project_id && 
+            Number(e.milestone_id) === ms.milestone_index && 
+            e.event_type === "DEADLINE_EXTENDED"
         );
 
         if (releaseEvent) {
@@ -439,6 +453,9 @@ exports.getContractorStats = async (req, res) => {
             try {
                 total_earnings_inr += BigInt(releaseEvent?.metadata?.amount || ms.amount || 0);
             } catch (e) {}
+        } else if (rejectionEvent) {
+            // It was rejected and hasn't transitioned to released yet
+            rejected_count++;
         }
     });
 
@@ -453,11 +470,45 @@ exports.getContractorStats = async (req, res) => {
         total_milestones,
         on_time_milestones: on_time_count,
         delayed_milestones: delayed_count,
+        rejected_milestones: rejected_count,
         total_earnings_inr: total_earnings_inr.toString(),
         average_delay_days
     };
 
     stats.score = calculateScore(stats);
+
+    // Sync stats to Supabase 'contractors' table
+    try {
+        const addr = ethers.getAddress(wallet);
+
+        // 1. Fetch current record to preserve full_name and get exact wallet case
+        // ILIKE is used to avoid issues with case-sensitivity in the wallet string
+        const { data: currentContractor } = await supabase
+            .from('contractors')
+            .select('wallet_address, full_name')
+            .ilike('wallet_address', addr)
+            .maybeSingle();
+
+        // 2. Perform the update (using upsert fallback)
+        const { error: syncError } = await supabase
+            .from('contractors')
+            .upsert({
+                wallet_address: currentContractor?.wallet_address || addr,
+                full_name: currentContractor?.full_name || "Unknown", // Required by Not Null constraint
+                reputation_score: stats.score,
+                total_projects: stats.total_projects,
+                completed_projects: stats.completed_projects,
+                on_time_milestones: stats.on_time_milestones
+            }, { onConflict: 'wallet_address' });
+
+        if (syncError) {
+          console.error("Supabase sync error for wallet:", addr, syncError);
+        } else {
+          console.log("Successfully synced stats for contractor:", currentContractor?.wallet_address || addr);
+        }
+    } catch (dbErr) {
+        console.warn("Exception during stats sync to contractors table:", dbErr.message);
+    }
 
     return res.json(stats);
 

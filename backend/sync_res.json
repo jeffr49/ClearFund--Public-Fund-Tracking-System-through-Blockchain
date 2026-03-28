@@ -1,0 +1,8 @@
+{
+  "error": {
+    "code": "23502",
+    "details": "Failing row contains (0xeb39514933728A6f2Eb67C7DB9944AcdA6caDFA0, null, 99, 8, 2, 6, 2026-03-28 20:18:34.711075+00).",
+    "hint": null,
+    "message": "null value in column \"full_name\" of relation \"contractors\" violates not-null constraint"
+  }
+}

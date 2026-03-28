@@ -1,0 +1,35 @@
+[
+  {
+    "name": "Contractor 1",
+    "wallet": "0xeb39514933728A6f2Eb67C7DB9944AcdA6caDFA0",
+    "completedCount": 2,
+    "ongoingCount": 6,
+    "actioned": 6,
+    "onTime": 6,
+    "delayed": 0,
+    "rejected": 0,
+    "score": 100
+  },
+  {
+    "name": "Contractor 2",
+    "wallet": "0x39685443A31A6Bc5F720597d7E5CE6016b5077b6",
+    "completedCount": 1,
+    "ongoingCount": 3,
+    "actioned": 3,
+    "onTime": 3,
+    "delayed": 0,
+    "rejected": 0,
+    "score": 100
+  },
+  {
+    "name": "Contractor 3",
+    "wallet": "0xD30d7187Af142a98a2081E330bAD64FA7627bd40",
+    "completedCount": 0,
+    "ongoingCount": 1,
+    "actioned": 0,
+    "onTime": 0,
+    "delayed": 0,
+    "rejected": 0,
+    "score": 100
+  }
+]

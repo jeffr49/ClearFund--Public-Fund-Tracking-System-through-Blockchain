@@ -1,0 +1,35 @@
+{
+  "C3": {
+    "total_projects": 1,
+    "completed_projects": 0,
+    "ongoing_projects": 1,
+    "total_milestones": 2,
+    "on_time_milestones": 0,
+    "delayed_milestones": 0,
+    "total_earnings_inr": "0",
+    "average_delay_days": 0,
+    "score": 0
+  },
+  "C2": {
+    "total_projects": 4,
+    "completed_projects": 1,
+    "ongoing_projects": 3,
+    "total_milestones": 9,
+    "on_time_milestones": 3,
+    "delayed_milestones": 0,
+    "total_earnings_inr": "400000",
+    "average_delay_days": 0,
+    "score": 47
+  },
+  "C1": {
+    "total_projects": 8,
+    "completed_projects": 2,
+    "ongoing_projects": 5,
+    "total_milestones": 16,
+    "on_time_milestones": 6,
+    "delayed_milestones": 0,
+    "total_earnings_inr": "420005",
+    "average_delay_days": 0,
+    "score": 50
+  }
+}
