@@ -132,56 +132,104 @@ export default function GovManageBidsDetailPage() {
                                 <p>Contractors have not submitted any bids for this project.</p>
                             </div>
                         ) : (
-                            <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-                                {bids.map((bid, index) => {
-                                    const isLowest = index === 0;
-                                    const msData = typeof bid.milestone_data === 'string' ? JSON.parse(bid.milestone_data || '[]') : (bid.milestone_data || []);
-                                    return (
-                                        <div key={bid.id} style={{
-                                            background: "var(--card-bg)",
-                                            borderRadius: "16px",
-                                            border: isLowest ? "2px solid var(--accent-green)" : "1px solid var(--border-color)",
-                                            padding: "2rem",
-                                            position: "relative",
-                                            boxShadow: isLowest ? "0 10px 25px -5px rgba(16, 185, 129, 0.15)" : "0 4px 6px -1px rgba(0, 0, 0, 0.05)"
-                                        }}>
-                                            {isLowest && (
-                                                <div style={{ position: "absolute", top: "-12px", right: "2rem", background: "var(--accent-green)", color: "white", padding: "4px 16px", borderRadius: "999px", fontSize: "0.8rem", fontWeight: "800", boxShadow: "0 4px 6px -1px rgba(16, 185, 129, 0.3)" }}>
-                                                    <i className="fa-solid fa-trophy" style={{ marginRight: "4px" }}></i> LOWEST BID
-                                                </div>
-                                            )}
-                                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1.5rem" }}>
-                                                <div>
-                                                    <h3 style={{ fontSize: "1.25rem", fontWeight: "800", marginBottom: "0.25rem" }}>{bid.contractor_name}</h3>
-                                                    <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", fontFamily: "monospace" }}>Wallet: {bid.contractor_wallet}</p>
-                                                </div>
-                                                <div style={{ textAlign: "right" }}>
-                                                    <p style={{ fontSize: "0.8rem", textTransform: "uppercase", fontWeight: "700", color: "var(--text-secondary)", marginBottom: "0.25rem" }}>Total Bid</p>
-                                                    <p style={{ fontSize: "1.5rem", fontWeight: "800", color: isLowest ? "var(--accent-green)" : "var(--primary-color)" }}>{formatInr(bid.total_amount)}</p>
-                                                </div>
-                                            </div>
-
-                                            <div style={{ background: "var(--bg-secondary)", borderRadius: "10px", padding: "1rem" }}>
-                                                <h4 style={{ fontSize: "0.9rem", fontWeight: "700", marginBottom: "1rem", color: "var(--text-secondary)", textTransform: "uppercase" }}>Milestone Breakdown</h4>
-                                                <div style={{ display: "grid", gap: "0.75rem" }}>
-                                                    {msData.map((m, i) => (
-                                                        <div key={i} style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: "1rem", alignItems: "center", background: "var(--bg-color)", padding: "0.75rem 1rem", borderRadius: "8px", border: "1px solid var(--border-color)" }}>
-                                                            <div style={{ fontWeight: "800", color: "var(--primary-color)", width: "24px" }}>{(m.milestone_index ?? i) + 1}</div>
-                                                            <div>
-                                                                <div style={{ fontWeight: "700", fontSize: "0.9rem" }}>Amount: {formatInr(m.amount)}</div>
-                                                            </div>
-                                                            <div style={{ textAlign: "right", color: "var(--text-secondary)", fontSize: "0.85rem" }}>
-                                                                <i className="fa-regular fa-calendar" style={{ marginRight: "4px" }}></i>
-                                                                {new Date(m.deadline).toLocaleDateString()}
-                                                            </div>
+                                <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+                                    {bids.map((bid, index) => {
+                                        const isLowest = index === 0;
+                                        // Ensure milestones are parsed
+                                        let msData = [];
+                                        try {
+                                            msData = typeof bid.milestone_data === 'string' ? JSON.parse(bid.milestone_data || '[]') : (bid.milestone_data || []);
+                                        } catch (e) {
+                                            msData = [];
+                                        }
+                                        
+                                        return (
+                                            <div key={bid.id} style={{
+                                                background: "var(--card-bg)",
+                                                borderRadius: "16px",
+                                                border: isLowest ? "2.5px solid #10b981" : "1px solid var(--border-color)",
+                                                padding: "2rem",
+                                                position: "relative",
+                                                boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)"
+                                            }}>
+                                                {isLowest && (
+                                                    <div style={{ 
+                                                        position: "absolute", top: "-15px", left: "2rem", 
+                                                        background: "#10b981", color: "white", padding: "4px 14px", 
+                                                        borderRadius: "4px", fontSize: "0.7rem", fontWeight: "900", 
+                                                        textTransform: "uppercase", letterSpacing: "0.1em"
+                                                    }}>
+                                                        Lowest Bidder
+                                                    </div>
+                                                )}
+                                                
+                                                {/* Header info in Grid to prevent overlap */}
+                                                <div style={{ 
+                                                    display: "grid", 
+                                                    gridTemplateColumns: "1fr auto", 
+                                                    gap: "2rem", 
+                                                    alignItems: "center", 
+                                                    marginBottom: "1.5rem",
+                                                    borderBottom: "1px solid var(--border-color)",
+                                                    paddingBottom: "1.5rem"
+                                                }}>
+                                                    <div>
+                                                        <h3 style={{ fontSize: "1.5rem", fontWeight: "800", color: "var(--text-primary)", marginBottom: "4px" }}>
+                                                            {bid.contractor_name}
+                                                        </h3>
+                                                        <div style={{ color: "var(--text-secondary)", fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "6px" }}>
+                                                            <i className="fa-solid fa-wallet"></i>
+                                                            <span style={{ fontFamily: "monospace" }}>{bid.contractor_wallet}</span>
                                                         </div>
-                                                    ))}
+                                                    </div>
+                                                    <div style={{ textAlign: "right" }}>
+                                                        <span style={{ fontSize: "0.75rem", textTransform: "uppercase", fontWeight: "800", color: "var(--text-secondary)", letterSpacing: "0.05em" }}>Total Contract Price</span>
+                                                        <div style={{ fontSize: "2.25rem", fontWeight: "900", color: isLowest ? "#10b981" : "var(--primary-color)", whiteSpace: "nowrap" }}>
+                                                            {formatInr(bid.total_amount)}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="bid-milestones-section">
+                                                    <h4 style={{ fontSize: "0.85rem", fontWeight: "800", color: "var(--text-secondary)", textTransform: "uppercase", marginBottom: "1rem" }}>
+                                                        Project Roadmap & Milestones
+                                                    </h4>
+                                                    <div style={{ display: "grid", gap: "0.75rem" }}>
+                                                            {msData.map((m, i) => {
+                                                                // Cross-reference with project milestone template for title/description
+                                                                const template = (project?.milestones || []).find(tm => Number(tm.milestone_index) === Number(m.milestone_index ?? i));
+                                                                const displayTitle = template?.title || m.title;
+                                                                const displayDesc = template?.description || m.description;
+
+                                                                return (
+                                                                    <div key={i} style={{ 
+                                                                        display: "grid", 
+                                                                        gridTemplateColumns: "10px 180px 1fr 150px", 
+                                                                        gap: "2.5rem", 
+                                                                        alignItems: "center", 
+                                                                        background: "rgba(255,255,255,0.7)", 
+                                                                        padding: "1rem 1.5rem", 
+                                                                        borderRadius: "8px",
+                                                                        borderBottom: i !== msData.length - 1 ? "1px solid rgba(0,0,0,0.03)" : "none"
+                                                                    }}>
+                                                                        <div style={{ fontWeight: "900", color: "var(--primary-color)", fontSize: "1rem" }}>{(m.milestone_index ?? i) + 1}</div>
+                                                                        <div style={{ fontSize: "1rem", fontWeight: "700", color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                                                            {displayTitle || `Milestone ${(m.milestone_index ?? i) + 1}`}
+                                                                        </div>
+                                                                        <div style={{ fontWeight: "800", fontSize: "1.1rem", color: "var(--text-primary)" }}>{formatInr(m.amount)}</div>
+                                                                        <div style={{ textAlign: "right", fontWeight: "700", fontSize: "0.85rem", color: "var(--text-primary)" }}>
+                                                                            <i className="fa-regular fa-calendar" style={{ marginRight: "6px", fontSize: "0.75rem", color: "var(--text-secondary)" }}></i>
+                                                                            {new Date(m.deadline).toLocaleDateString()}
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                                        );
+                                    })}
+                                </div>
                         )}
                     </>
                 )}

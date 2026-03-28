@@ -264,11 +264,19 @@ exports.getProjectById = async (req, res) => {
 
     const { data, error } = await supabase
       .from("projects")
-      .select("*")
+      .select(`
+        *,
+        milestones (*)
+      `)
       .eq("id", id)
       .single();
 
     if (error) throw error;
+    
+    // Ensure milestones are sorted by index
+    if (data && data.milestones) {
+      data.milestones.sort((a, b) => Number(a.milestone_index) - Number(b.milestone_index));
+    }
 
     res.json(data);
 

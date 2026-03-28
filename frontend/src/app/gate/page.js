@@ -14,7 +14,13 @@ function GateInner() {
   useEffect(() => {
     const userStr = sessionStorage.getItem("clearfund_user");
     if (userStr) {
-      setUser(JSON.parse(userStr));
+      const parsedUser = JSON.parse(userStr);
+      setUser(parsedUser);
+      
+      // AUTO-REDIRECT: Public role does not require wallet verification gate
+      if (role === "public") {
+        router.push(`/dashboard?role=public`);
+      }
     } else if (role !== "public") {
       router.push("/");
     }

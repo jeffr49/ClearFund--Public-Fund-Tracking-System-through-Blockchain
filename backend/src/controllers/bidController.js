@@ -95,7 +95,8 @@ exports.getProjectBids = async (req, res) => {
       const { data: users, error: usersError } = await supabase
         .from("users")
         .select("wallet_address, name")
-        .in("wallet_address", wallets);
+        .in("wallet_address", wallets)
+        .eq("role", "contractor");
 
       if (!usersError && users) {
         users.forEach(u => { usersMap[u.wallet_address] = u.name; });
