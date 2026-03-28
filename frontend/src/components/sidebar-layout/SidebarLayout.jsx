@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Link2 } from "lucide-react";
 import { SIDEBAR_NAV } from "./sidebarNav";
 
@@ -12,8 +12,23 @@ const ROLE_LABEL = {
   public: "public"
 };
 
+function isSidebarLinkActive(pathname, searchParams, href) {
+  if (!href) return false;
+  const [path, queryString] = href.split("?");
+  if (path === "/gov/create") {
+    return pathname === "/gov/create";
+  }
+  if (path === "/dashboard") {
+    const q = new URLSearchParams(queryString || "");
+    const role = q.get("role") || "public";
+    return pathname === "/dashboard" && (searchParams.get("role") || "public") === role;
+  }
+  return pathname === path;
+}
+
 export default function SidebarLayout({ role, children }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const items = SIDEBAR_NAV[role] || SIDEBAR_NAV.public;
 
   return (
@@ -31,8 +46,7 @@ export default function SidebarLayout({ role, children }) {
         <nav className="sidebar-nav">
           <ul className="sidebar-menu">
             {items.map((item) => {
-              const active = item.href && pathname === item.href;
-              // Special case: if we are at /gov and item is /gov, it's active
+              const active = item.href && isSidebarLinkActive(pathname, searchParams, item.href);
               if (item.soon || !item.href) {
                 return (
                   <li

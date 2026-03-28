@@ -1,13 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ethers } from "ethers";
 import styles from "./MetaMaskConnect.module.css";
 
-export default function MetaMaskConnect({ onVerified }) {
+export default function MetaMaskConnect({ onVerified, onAccountChange } = {}) {
   const [account, setAccount] = useState("");
   const [error, setError] = useState("");
   const [isVerified, setIsVerified] = useState(false);
+  const onAccountRef = useRef(onAccountChange);
+  onAccountRef.current = onAccountChange;
+
+  useEffect(() => {
+    onAccountRef.current?.(account);
+  }, [account]);
 
   useEffect(() => {
     if (onVerified) onVerified(isVerified);
