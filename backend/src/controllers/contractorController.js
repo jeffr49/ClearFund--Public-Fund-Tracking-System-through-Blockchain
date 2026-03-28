@@ -13,7 +13,7 @@ async function getApprovalThreshold(contractAddress) {
   }
 
   try {
-    const contract = new ethers.Contract(contractAddress, escrowAbi, provider);
+    const contract = new ethers.Contract(contractAddress, escrowAbi.abi, provider);
     const threshold = await contract.approvalThreshold();
     return Number(threshold);
   } catch (_err) {
@@ -66,7 +66,7 @@ function normalizeMilestone(row, milestoneEvents, approvalThreshold) {
     deadline: row.deadline,
     status: deriveMilestoneStatus(milestoneEvents, approvalThreshold),
     ipfsHash,
-    ipfsUrl: ipfsHash ? `https://gateway.pinata.cloud/ipfs/${ipfsHash}` : null
+    ipfsUrls: ipfsHash ? ipfsHash.split(',').map(hash => `https://gateway.pinata.cloud/ipfs/${hash.trim()}`) : []
   };
 }
 

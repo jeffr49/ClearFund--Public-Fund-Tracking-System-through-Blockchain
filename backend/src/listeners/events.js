@@ -43,7 +43,7 @@ exports.listenToProject = (projectId, contractAddress) => {
 
   const contract = new ethers.Contract(
     contractAddress,
-    escrowAbi,
+    escrowAbi.abi,
     provider
   );
 
