@@ -2,17 +2,14 @@ const router = require("express").Router();
 
 const {
   createProject,
+  getProjectsOverview,
   getProjects,
   getProjectById
 } = require("../controllers/projectController");
 
-// Create project
 router.post("/create", createProject);
-
-// Get all
+router.get("/overview", getProjectsOverview);
 router.get("/", getProjects);
-
-// Get one
 router.get("/:id", getProjectById);
 
 module.exports = router;

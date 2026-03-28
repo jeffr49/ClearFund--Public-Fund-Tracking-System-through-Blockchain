@@ -1,0 +1,35 @@
+.brandIcon {
+  color: #3b82f6;
+  flex-shrink: 0;
+}
+
+.soon {
+  opacity: 0.55;
+  cursor: default;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.soonTag {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+.signOut {
+  color: #94a3b8;
+  text-decoration: none;
+  font-size: 0.85rem;
+}
+
+.signOut:hover {
+  color: #e2e8f0;
+}
+
+.sidebar-menu a.sidebar-item {
+  text-decoration: none;
+  color: inherit;
+}

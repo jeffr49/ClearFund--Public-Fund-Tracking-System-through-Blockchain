@@ -44,6 +44,141 @@ exports.createProject = async (req, res) => {
 
 
 
+function maxBidAmount(row) {
+  const v = row.maximumBidAmount ?? row.maximum_bid_amount;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function displayStatus(dbStatus) {
+  const s = (dbStatus || "").toLowerCase();
+  if (s === "active") return "ongoing";
+  if (s === "completed") return "completed";
+  return "bidding";
+}
+
+// =========================
+// OVERVIEW (stats + projects for map / grid)
+// =========================
+exports.getProjectsOverview = async (req, res) => {
+  try {
+    const [
+      { data: projects, error: projectsError },
+      { data: fundEvents, error: fundError },
+      { data: milestoneRows, error: msError }
+    ] = await Promise.all([
+      supabase.from("projects").select("*").order("created_at", { ascending: false }),
+      supabase
+        .from("events")
+        .select("project_id, metadata")
+        .eq("event_type", "FUNDS_RELEASED"),
+      supabase.from("milestones").select("project_id")
+    ]);
+
+    if (projectsError) throw projectsError;
+    if (fundError) throw fundError;
+    if (msError) throw msError;
+
+    const fundsWeiByProject = new Map();
+    let totalReleasedWei = 0n;
+
+    for (const ev of fundEvents || []) {
+      const raw = ev.metadata?.amount;
+      if (raw === undefined || raw === null) continue;
+      try {
+        const w = BigInt(String(raw));
+        totalReleasedWei += w;
+        const pid = ev.project_id;
+        if (!pid) continue;
+        fundsWeiByProject.set(pid, (fundsWeiByProject.get(pid) || 0n) + w);
+      } catch (_e) {
+        /* skip bad amount */
+      }
+    }
+
+    const releasedCountByProject = new Map();
+    for (const ev of fundEvents || []) {
+      if (!ev.project_id) continue;
+      releasedCountByProject.set(
+        ev.project_id,
+        (releasedCountByProject.get(ev.project_id) || 0) + 1
+      );
+    }
+
+    const milestoneCountByProject = new Map();
+    for (const row of milestoneRows || []) {
+      if (!row.project_id) continue;
+      milestoneCountByProject.set(
+        row.project_id,
+        (milestoneCountByProject.get(row.project_id) || 0) + 1
+      );
+    }
+
+    const list = projects || [];
+    let bidding = 0;
+    let ongoing = 0;
+    let completed = 0;
+
+    for (const p of list) {
+      const s = (p.status || "").toLowerCase();
+      if (s === "bidding") bidding += 1;
+      else if (s === "active") ongoing += 1;
+      else if (s === "completed") completed += 1;
+      else ongoing += 1;
+    }
+
+    const totalBudget = list.reduce((sum, p) => sum + maxBidAmount(p), 0);
+
+    const enriched = list.map((p) => {
+      const pid = p.id;
+      const disp = displayStatus(p.status);
+      const totalMs = milestoneCountByProject.get(pid) || 0;
+      const doneMs = releasedCountByProject.get(pid) || 0;
+      const releasedWei = fundsWeiByProject.get(pid) || 0n;
+      const completedDisplay =
+        totalMs > 0 ? Math.min(doneMs, totalMs) : doneMs;
+
+      let currentPhase = "—";
+      if (disp === "bidding") currentPhase = "Open for bids";
+      else if (disp === "ongoing") currentPhase = "Milestone execution";
+      else if (disp === "completed") currentPhase = "Closed";
+
+      return {
+        id: pid,
+        title: p.title,
+        description: p.description,
+        location_address: p.location_address,
+        location_lat: p.location_lat != null ? Number(p.location_lat) : null,
+        location_lng: p.location_lng != null ? Number(p.location_lng) : null,
+        status: p.status,
+        display_status: disp,
+        maximum_bid_amount: maxBidAmount(p),
+        funds_released_wei: releasedWei.toString(),
+        contract_address: p.contract_address,
+        contractor_wallet: p.contractor_wallet,
+        total_milestones: totalMs,
+        completed_milestones: completedDisplay,
+        current_phase: currentPhase
+      };
+    });
+
+    return res.json({
+      stats: {
+        total_projects: list.length,
+        total_budget: totalBudget,
+        funds_released_wei: totalReleasedWei.toString(),
+        ongoing,
+        bidding,
+        completed
+      },
+      projects: enriched
+    });
+  } catch (err) {
+    console.error("getProjectsOverview error:", err);
+    return res.status(500).json({ error: "Failed to load overview" });
+  }
+};
+
 // =========================
 // GET ALL PROJECTS
 // =========================

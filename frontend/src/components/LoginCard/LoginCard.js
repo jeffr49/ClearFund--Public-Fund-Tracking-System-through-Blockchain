@@ -77,7 +77,7 @@ const ROLES = [
     id: "public",
     label: "Public Citizen",
     icon: Icons.Users,
-    route: "/dashboard/index.html?role=public",
+    route: "/public",
   },
 ];
 
