@@ -25,6 +25,11 @@ function getEventLogDetails(eventPayload) {
   return { txHash, logIndex };
 }
 
+function hasConcreteEventLog(eventPayload) {
+  const { txHash, logIndex } = getEventLogDetails(eventPayload);
+  return Boolean(txHash) && logIndex !== null;
+}
+
 function buildEventKey(contractAddress, eventLog) {
   const { txHash, logIndex } = getEventLogDetails(eventLog);
   if (!txHash || logIndex === null) {
@@ -104,6 +109,10 @@ exports.listenToProject = (projectId, contractAddress) => {
   // =========================
   contract.on("ProofSubmitted", async (milestoneId, ipfsHash, eventLog) => {
     try {
+      if (!hasConcreteEventLog(eventLog)) {
+        console.warn("Skipping ProofSubmitted without concrete log details");
+        return;
+      }
       const eventKey = buildEventKey(contractAddress, eventLog);
       if (eventKey && seenEventKeys.has(eventKey)) return;
       if (await hasRecordedEventLog(eventLog)) {
@@ -149,6 +158,10 @@ exports.listenToProject = (projectId, contractAddress) => {
   // =========================
   contract.on("MilestoneApproved", async (milestoneId, approver, eventLog) => {
     try {
+      if (!hasConcreteEventLog(eventLog)) {
+        console.warn("Skipping MilestoneApproved without concrete log details");
+        return;
+      }
       const eventKey = buildEventKey(contractAddress, eventLog);
       if (eventKey && seenEventKeys.has(eventKey)) return;
       if (await hasRecordedEventLog(eventLog)) {
@@ -182,6 +195,10 @@ exports.listenToProject = (projectId, contractAddress) => {
   // =========================
   contract.on("MilestoneRejected", async (milestoneId, approver, eventLog) => {
     try {
+      if (!hasConcreteEventLog(eventLog)) {
+        console.warn("Skipping MilestoneRejected without concrete log details");
+        return;
+      }
       const eventKey = buildEventKey(contractAddress, eventLog);
       if (eventKey && seenEventKeys.has(eventKey)) return;
       if (await hasRecordedEventLog(eventLog)) {
@@ -215,6 +232,10 @@ exports.listenToProject = (projectId, contractAddress) => {
   // =========================
   contract.on("FundsReleased", async (milestoneId, amount, eventLog) => {
     try {
+      if (!hasConcreteEventLog(eventLog)) {
+        console.warn("Skipping FundsReleased without concrete log details");
+        return;
+      }
       const eventKey = buildEventKey(contractAddress, eventLog);
       if (eventKey && seenEventKeys.has(eventKey)) return;
       if (await hasRecordedEventLog(eventLog)) {
@@ -289,6 +310,10 @@ exports.listenToProject = (projectId, contractAddress) => {
   // =========================
   contract.on("DeadlineExtended", async (milestoneId, newDeadline, eventLog) => {
     try {
+      if (!hasConcreteEventLog(eventLog)) {
+        console.warn("Skipping DeadlineExtended without concrete log details");
+        return;
+      }
       const eventKey = buildEventKey(contractAddress, eventLog);
       if (eventKey && seenEventKeys.has(eventKey)) return;
       if (await hasRecordedEventLog(eventLog)) {
