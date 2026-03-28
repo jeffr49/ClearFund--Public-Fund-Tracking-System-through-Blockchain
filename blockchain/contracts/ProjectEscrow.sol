@@ -1,12 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+/**
+ * @title ProjectEscrow
+ * @notice Audit / state machine for milestone workflow. Amounts are **whole Indian Rupees (INR)**,
+ *         matching the contractor's bid milestone quotes. No native ETH (or other tokens) is held or
+ *         sent by this contract. When `releaseFunds` runs after approvals, fiat payout to the
+ *         contractor's **bank account** must be executed off-chain (treasury / banking integration)
+ *         using the `FundsReleased` event (milestone id + INR amount).
+ */
 contract ProjectEscrow {
 
     address public government;
     address public contractor;
 
+    /// @notice Total project budget in INR (whole rupees), sum of milestone amounts
     uint256 public totalFunds;
+    /// @notice Cumulative INR marked released on-chain (off-chain bank transfer should mirror this)
     uint256 public releasedFunds;
 
     uint8 public approvalThreshold;
@@ -34,14 +44,13 @@ contract ProjectEscrow {
 
     mapping(uint256 => Milestone) public milestones;
 
-    // EVENTS
     event ProofSubmitted(uint256 milestoneId, string ipfsHash);
     event MilestoneApproved(uint256 milestoneId, address approver);
     event MilestoneRejected(uint256 milestoneId, address approver);
+    /// @param amount Milestone payout in **whole INR** (off-chain bank settlement)
     event FundsReleased(uint256 milestoneId, uint256 amount);
     event DeadlineExtended(uint256 milestoneId, uint256 newDeadline);
 
-    // MODIFIERS
     modifier onlyGovernment() {
         require(msg.sender == government, "Not government");
         _;
@@ -64,7 +73,7 @@ contract ProjectEscrow {
         uint256[] memory _amounts,
         uint256[] memory _deadlines,
         uint8 _threshold
-    ) payable {
+    ) {
         require(_amounts.length == _deadlines.length, "Invalid input");
 
         government = _government;
@@ -72,22 +81,19 @@ contract ProjectEscrow {
         approvers = _approvers;
         approvalThreshold = _threshold;
 
-        totalFunds = msg.value;
         milestoneCount = _amounts.length;
+        uint256 sum;
+        for (uint i = 0; i < milestoneCount; i++) {
+            milestones[i].amount = _amounts[i];
+            milestones[i].deadline = _deadlines[i];
+            sum += _amounts[i];
+        }
+        totalFunds = sum;
 
         for (uint i = 0; i < _approvers.length; i++) {
             isApprover[_approvers[i]] = true;
         }
-
-        for (uint i = 0; i < milestoneCount; i++) {
-            milestones[i].amount = _amounts[i];
-            milestones[i].deadline = _deadlines[i];
-        }
     }
-
-    // ========================
-    // CONTRACTOR ACTIONS
-    // ========================
 
     function submitProof(uint256 id, string memory hash)
         public
@@ -97,7 +103,6 @@ contract ProjectEscrow {
 
         Milestone storage m = milestones[id];
 
-        // Reset approvals & rejections for resubmission
         m.approvals = 0;
         m.rejections = 0;
 
@@ -106,10 +111,6 @@ contract ProjectEscrow {
 
         emit ProofSubmitted(id, hash);
     }
-
-    // ========================
-    // APPROVER ACTIONS
-    // ========================
 
     function approveMilestone(uint256 id)
         public
@@ -156,10 +157,10 @@ contract ProjectEscrow {
         emit DeadlineExtended(id, m.deadline);
     }
 
-    // ========================
-    // FUND RELEASE
-    // ========================
-
+    /**
+     * @notice Records milestone payout in INR. Does **not** move cryptocurrency. Treasury should
+     *         pay the contractor's bank account for `m.amount` INR off-chain.
+     */
     function releaseFunds(uint256 id) public {
         Milestone storage m = milestones[id];
 
@@ -169,16 +170,10 @@ contract ProjectEscrow {
         m.released = true;
         releasedFunds += m.amount;
 
-        payable(contractor).transfer(m.amount);
-
         currentMilestone++;
 
         emit FundsReleased(id, m.amount);
     }
-
-    // ========================
-    // VIEW FUNCTION
-    // ========================
 
     function getMilestone(uint256 id)
         public

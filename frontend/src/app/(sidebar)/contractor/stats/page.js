@@ -83,7 +83,7 @@ export default function ContractorStatsPage() {
                   <div className="icon-wrap green"><i className="fa-solid fa-sack-dollar"></i></div>
                   <div className="info-wrap">
                     <span>Total Earnings</span>
-                    <strong>{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', notation: 'compact' }).format(stats.total_earnings_wei / 1e18 || 0)}</strong>
+                    <strong>{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', notation: 'compact' }).format(Number(stats.total_earnings_inr || 0))}</strong>
                   </div>
                 </div>
                 <div className="stat-mini-card">

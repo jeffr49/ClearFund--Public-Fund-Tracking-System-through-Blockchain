@@ -3,6 +3,10 @@ pragma solidity ^0.8.20;
 
 import "./ProjectEscrow.sol";
 
+/**
+ * @notice Deploys `ProjectEscrow` instances. Milestone `amounts` are **whole INR** from the bid;
+ *         no ETH is sent with deployment.
+ */
 contract Factory {
 
     address[] public projects;
@@ -15,9 +19,9 @@ contract Factory {
         uint256[] memory amounts,
         uint256[] memory deadlines,
         uint8 threshold
-    ) public payable {
+    ) public {
 
-        ProjectEscrow project = new ProjectEscrow{value: msg.value}(
+        ProjectEscrow project = new ProjectEscrow(
             msg.sender,
             contractor,
             approvers,

@@ -159,7 +159,7 @@ exports.getProjectDetails = async (req, res) => {
       (milestone) => milestone.status !== "APPROVED"
     );
 
-    const fundsReleasedWei = (events || [])
+    const fundsReleasedInr = (events || [])
       .filter((event) => event.event_type === "FUNDS_RELEASED")
       .reduce((sum, event) => {
         const value = event?.metadata?.amount;
@@ -188,7 +188,7 @@ exports.getProjectDetails = async (req, res) => {
           : normalizedMilestones.length,
         total_milestones: normalizedMilestones.length,
         approved_milestones: approvedCount,
-        funds_released_wei: fundsReleasedWei.toString()
+        funds_released_inr: fundsReleasedInr.toString()
       }
     });
   } catch (err) {
@@ -275,7 +275,7 @@ exports.getContractorStats = async (req, res) => {
         total_milestones: 0,
         on_time_milestones: 0,
         delayed_milestones: 0,
-        total_earnings_wei: "0",
+        total_earnings_inr: "0",
         score: 100,
         average_delay_days: 0
       });
@@ -307,7 +307,7 @@ exports.getContractorStats = async (req, res) => {
     let on_time_count = 0;
     let delayed_count = 0;
     let total_delay_ms = 0;
-    let total_earnings_wei = 0n;
+    let total_earnings_inr = 0n;
 
     milestones.forEach(ms => {
         // Find if this milestone was approved
@@ -329,7 +329,7 @@ exports.getContractorStats = async (req, res) => {
             }
 
             try {
-                total_earnings_wei += BigInt(ms.amount || 0);
+                total_earnings_inr += BigInt(ms.amount || 0);
             } catch (e) {}
         }
     });
@@ -344,7 +344,7 @@ exports.getContractorStats = async (req, res) => {
         total_milestones,
         on_time_milestones: on_time_count,
         delayed_milestones: delayed_count,
-        total_earnings_wei: total_earnings_wei.toString(),
+        total_earnings_inr: total_earnings_inr.toString(),
         average_delay_days
     };
 

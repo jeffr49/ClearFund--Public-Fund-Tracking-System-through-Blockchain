@@ -67,28 +67,28 @@ exports.deployProject = async (bid, projectId) => {
       throw new Error("Bid milestones are missing");
     }
 
-    const amounts = milestones.map(m =>
-      ethers.parseEther(m.amount.toString())
-    );
+    // On-chain amounts are whole INR (rupees), matching bid milestone quotes — no ETH is locked.
+    const amounts = milestones.map((m) => {
+      const n = Number(m.amount);
+      if (!Number.isFinite(n) || n < 0) {
+        throw new Error(`Invalid milestone amount (INR): ${m.amount}`);
+      }
+      return BigInt(Math.round(n));
+    });
 
     const deadlines = milestones.map((_, i) =>
       Math.floor(Date.now() / 1000) + (i + 1) * 86400 // stagger deadlines
     );
 
     // =========================
-    // 5. DEPLOY CONTRACT
+    // 5. DEPLOY CONTRACT (non-payable; INR-only bookkeeping on-chain)
     // =========================
-    const totalValue = amounts.reduce((a, b) => a + b, 0n);
-
     const tx = await factory.createProject(
       bid.contractor_wallet,
       selectedApprovers,
       amounts,
       deadlines,
-      2, // approval threshold
-      {
-        value: totalValue,
-      }
+      2 // approval threshold
     );
 
     const receipt = await tx.wait();

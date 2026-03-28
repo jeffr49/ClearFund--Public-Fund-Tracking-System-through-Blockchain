@@ -1457,7 +1457,7 @@ const loadContractorStats = async (wallet = CURRENT_USER_WALLET) => {
                             <div class="icon-wrap green"><i class="fa-solid fa-sack-dollar"></i></div>
                             <div class="info-wrap">
                                 <span>Total Earnings</span>
-                                <strong>${formatCurrency(stats.total_earnings_wei / 1e18 || 0)}</strong>
+                                <strong>${formatCurrency(Number(stats.total_earnings_inr || 0))}</strong>
                             </div>
                         </div>
                         <div class="stat-mini-card">

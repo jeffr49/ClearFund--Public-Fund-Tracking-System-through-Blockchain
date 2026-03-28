@@ -4,6 +4,23 @@ import { useEffect, useState } from "react";
 import MilestoneCard from "./MilestoneCard";
 import styles from "./contractorDashboard.module.css";
 
+function formatInrWhole(amountStr) {
+  try {
+    const bi = BigInt(amountStr || "0");
+    const max = BigInt(Number.MAX_SAFE_INTEGER);
+    if (bi > max) {
+      return `₹${bi.toLocaleString("en-IN")}`;
+    }
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0
+    }).format(Number(bi));
+  } catch {
+    return "—";
+  }
+}
+
 export default function ProjectCard({ project, apiBase }) {
   const [details, setDetails] = useState(null);
   const [timeline, setTimeline] = useState([]);
@@ -68,7 +85,10 @@ export default function ProjectCard({ project, apiBase }) {
             Milestone {details.progress.current_milestone_index} /{" "}
             {details.progress.total_milestones}
           </div>
-          <div>Funds Released (wei): {details.progress.funds_released_wei}</div>
+          <div>
+            Released (INR, bank payout):{" "}
+            {formatInrWhole(details.progress.funds_released_inr)}
+          </div>
         </div>
       ) : null}
 

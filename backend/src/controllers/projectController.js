@@ -1,3 +1,4 @@
+const { randomUUID } = require("crypto");
 const supabase = require("../db/supabaseClient");
 
 // =========================
@@ -18,6 +19,7 @@ exports.createProject = async (req, res) => {
       .from("projects")
       .insert([
         {
+          id: randomUUID(),
           title,
           description,
           location_lat: location.lat,
@@ -79,18 +81,19 @@ exports.getProjectsOverview = async (req, res) => {
     if (fundError) throw fundError;
     if (msError) throw msError;
 
-    const fundsWeiByProject = new Map();
-    let totalReleasedWei = 0n;
+    // FUNDS_RELEASED metadata.amount = whole INR (on-chain milestone amount; bank payout is off-chain)
+    const fundsInrByProject = new Map();
+    let totalReleasedInr = 0n;
 
     for (const ev of fundEvents || []) {
       const raw = ev.metadata?.amount;
       if (raw === undefined || raw === null) continue;
       try {
         const w = BigInt(String(raw));
-        totalReleasedWei += w;
+        totalReleasedInr += w;
         const pid = ev.project_id;
         if (!pid) continue;
-        fundsWeiByProject.set(pid, (fundsWeiByProject.get(pid) || 0n) + w);
+        fundsInrByProject.set(pid, (fundsInrByProject.get(pid) || 0n) + w);
       } catch (_e) {
         /* skip bad amount */
       }
@@ -134,7 +137,7 @@ exports.getProjectsOverview = async (req, res) => {
       const disp = displayStatus(p.status);
       const totalMs = milestoneCountByProject.get(pid) || 0;
       const doneMs = releasedCountByProject.get(pid) || 0;
-      const releasedWei = fundsWeiByProject.get(pid) || 0n;
+      const releasedInr = fundsInrByProject.get(pid) || 0n;
       const completedDisplay =
         totalMs > 0 ? Math.min(doneMs, totalMs) : doneMs;
 
@@ -153,7 +156,7 @@ exports.getProjectsOverview = async (req, res) => {
         status: p.status,
         display_status: disp,
         maximum_bid_amount: maxBidAmount(p),
-        funds_released_wei: releasedWei.toString(),
+        funds_released_inr: releasedInr.toString(),
         contract_address: p.contract_address,
         contractor_wallet: p.contractor_wallet,
         total_milestones: totalMs,
@@ -166,7 +169,7 @@ exports.getProjectsOverview = async (req, res) => {
       stats: {
         total_projects: list.length,
         total_budget: totalBudget,
-        funds_released_wei: totalReleasedWei.toString(),
+        funds_released_inr: totalReleasedInr.toString(),
         ongoing,
         bidding,
         completed
