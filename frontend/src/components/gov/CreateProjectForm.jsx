@@ -3,12 +3,16 @@
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { ethers } from "ethers";
 import { API_BASE } from "@/lib/backend";
 import MetaMaskConnect from "@/components/wallet/MetaMaskConnect";
 import styles from "./CreateProjectForm.module.css";
 
 const DEFAULT_LEDGER = "/dashboard?role=government";
+const LocationPickerMap = dynamic(() => import("@/components/gov/LocationPickerMap"), {
+  ssr: false
+});
 
 export default function CreateProjectForm({ ledgerHref = DEFAULT_LEDGER } = {}) {
   const router = useRouter();
@@ -28,6 +32,30 @@ export default function CreateProjectForm({ ledgerHref = DEFAULT_LEDGER } = {}) 
   const [success, setSuccess] = useState("");
 
   const [fieldErrors, setFieldErrors] = useState({});
+
+  const handleLocationConfirm = useCallback((place) => {
+    setLocationAddress(place.address);
+    setLocationLat(String(place.lat));
+    setLocationLng(String(place.lng));
+    setFieldErrors((current) => ({
+      ...current,
+      locationAddress: undefined,
+      locationLat: undefined,
+      locationLng: undefined
+    }));
+  }, []);
+
+  const handleLocationClear = useCallback(() => {
+    setLocationAddress("");
+    setLocationLat("");
+    setLocationLng("");
+    setFieldErrors((current) => ({
+      ...current,
+      locationAddress: undefined,
+      locationLat: undefined,
+      locationLng: undefined
+    }));
+  }, []);
 
   const syncWalletFromMetaMask = useCallback(async () => {
     setError("");
@@ -183,8 +211,14 @@ export default function CreateProjectForm({ ledgerHref = DEFAULT_LEDGER } = {}) 
 
       <div className={styles.sectionTitle}>Location</div>
       <p className={styles.hint}>
-        Paste coordinates from your map app (decimal degrees). Address is stored for display and search.
+        Paste coordinates manually or pick a place from the OpenStreetMap panel below. Address is stored for display and search.
       </p>
+
+      <LocationPickerMap
+        disabled={submitting}
+        onConfirm={handleLocationConfirm}
+        onClear={handleLocationClear}
+      />
 
       <div className={styles.group}>
         <label className={styles.label} htmlFor="cf-address">
@@ -344,7 +378,7 @@ export default function CreateProjectForm({ ledgerHref = DEFAULT_LEDGER } = {}) 
           disabled={submitting}
         />
         <p className={styles.hint}>
-          This final date will be enforced heavily as the rigid deadline for the project's final milestone.
+          This final date will be enforced heavily as the rigid deadline for the project&apos;s final milestone.
         </p>
         {fieldErrors.projectDeadline ? (
           <span className={styles.fieldError}>{fieldErrors.projectDeadline}</span>
