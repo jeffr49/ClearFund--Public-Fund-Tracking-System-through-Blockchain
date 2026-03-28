@@ -20,5 +20,8 @@ export const SIDEBAR_NAV = {
     { href: "/approver/decisions", label: "Decisions" },
     { href: "/approver/history", label: "History" }
   ],
-  public: [{ href: "/dashboard?role=public", label: "Public Ledger" }]
+  public: [
+    { href: "/dashboard?role=public", label: "Public Ledger" },
+    { href: "/public/report", label: "Report Issue" }
+  ]
 };
