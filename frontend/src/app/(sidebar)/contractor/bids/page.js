@@ -170,12 +170,6 @@ export default function MyBidsPage() {
             <h1 style={{ fontSize: "2.25rem", fontWeight: "800", color: "var(--text-primary)" }}>My Proposal Portfolio</h1>
             <p style={{ color: "var(--text-secondary)", fontSize: "1.1rem" }}>Monitor the real-time status of your submitted bids across the platform.</p>
           </div>
-          {wallet && (
-            <div style={{ padding: "8px 16px", background: "var(--bg-secondary)", borderRadius: "10px", border: "1px solid var(--border-color)", fontSize: "0.85rem", fontWeight: "600" }}>
-                <i className="fa-solid fa-wallet" style={{ color: "var(--primary-color)", marginRight: "8px" }}></i>
-                {wallet.slice(0, 6)}...{wallet.slice(-4)}
-            </div>
-          )}
         </header>
 
         {loading ? (
@@ -195,7 +189,7 @@ export default function MyBidsPage() {
              <h3 style={{ fontSize: "1.5rem", color: "var(--text-secondary)" }}>No Bids Identified</h3>
              <p>You haven&apos;t submitted any proposals to active tenders yet.</p>
              <button onClick={() => router.push("/contractor/available")} style={{ marginTop: "1.5rem", padding: "10px 20px", borderRadius: "8px", background: "var(--primary-color)", color: "white", border: "none", fontWeight: "700", cursor: "pointer" }}>
-                Explorer Available Tenders
+                Explore Available Tenders
              </button>
            </div>
         ) : (

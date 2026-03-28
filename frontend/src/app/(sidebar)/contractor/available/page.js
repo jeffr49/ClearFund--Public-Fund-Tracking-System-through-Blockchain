@@ -238,7 +238,6 @@ export default function AvailableProjectsPage() {
                       }}>
                         <i className="fa-solid fa-gavel"></i> ACTIVE RFP
                       </span>
-                      <span style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>{p.id}</span>
                     </div>
                     <h3 className="avail-title" style={{ fontSize: "1.5rem", fontWeight: "700", color: "var(--text-primary)", marginBottom: "0.5rem" }}>{p.title}</h3>
                     <div className="avail-meta" style={{ display: "flex", gap: "1.5rem", color: "var(--text-secondary)", fontSize: "0.875rem" }}>

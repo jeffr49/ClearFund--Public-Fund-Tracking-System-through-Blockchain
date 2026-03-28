@@ -98,9 +98,6 @@ export default function MetaMaskConnect({ onVerified, onAccountChange } = {}) {
           <i className={`fa-solid ${isVerified ? "fa-circle-check" : "fa-circle-xmark"}`}></i>
           {isVerified ? "Verified Wallet" : "Unverified Wallet"}
         </div>
-        <span className={styles.addr} title={account}>
-          {account.slice(0, 6)}…{account.slice(-4)}
-        </span>
         {error ? <span className={styles.err} style={{ display: 'block', marginTop: 4 }}>{error}</span> : null}
       </div>
     );

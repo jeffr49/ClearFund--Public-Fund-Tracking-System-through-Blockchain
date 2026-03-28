@@ -89,12 +89,8 @@ export default function GovAssignApproversPage() {
                                             }}>
                                                 <i className="fa-solid fa-play"></i> ONGOING PROJECT
                                             </span>
-                                            <span style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>{p.id}</span>
                                         </div>
                                         <h3 style={{ fontSize: "1.5rem", fontWeight: "700", color: "var(--text-primary)", marginBottom: "0.5rem" }}>{p.title}</h3>
-                                        <div style={{ display: "flex", gap: "1.5rem", color: "var(--text-secondary)", fontSize: "0.875rem" }}>
-                                            <span><i className="fa-solid fa-wallet" style={{ marginRight: "6px" }}></i> Contract: {p.contract_address || "Pending deployment..."}</span>
-                                        </div>
                                     </div>
                                 </div>
                                 <div style={{ padding: "1.5rem 2rem", background: "var(--bg-secondary)" }}>
