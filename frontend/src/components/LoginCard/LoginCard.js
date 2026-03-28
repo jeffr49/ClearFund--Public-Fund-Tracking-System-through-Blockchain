@@ -44,6 +44,19 @@ const Icons = {
   )
 };
 
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+
+/** Maps UI selection to `users.role` in Supabase */
+function resolveDbRole(selectedRole, selectedSubRole) {
+  if (selectedRole === "government") {
+    if (selectedSubRole === "agency") return "government";
+    if (selectedSubRole === "approver") return "approver";
+  }
+  if (selectedRole === "contractor") return "contractor";
+  if (selectedRole === "public") return "public";
+  return null;
+}
+
 const ROLES = [
   {
     id: "government",
@@ -114,8 +127,6 @@ export default function LoginCard() {
     }
     if (!password.trim()) {
       newErrors.password = "Password is required.";
-    } else if (password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters for security.";
     }
     
     return newErrors;
@@ -131,28 +142,61 @@ export default function LoginCard() {
       return;
     }
 
-    setLoading(true);
-    // Simulate secure network authentication
-    await new Promise((resolve) => setTimeout(resolve, 1400));
-    setLoading(false);
+    const dbRole = resolveDbRole(selectedRole, selectedSubRole);
+    if (!dbRole) {
+      setErrors((prev) => ({ ...prev, role: "Invalid role selection." }));
+      return;
+    }
 
-    const role = ROLES.find((r) => r.id === selectedRole);
-    if (role) {
-      let routePath = "";
-      if (role.subRoles) {
-        const sub = role.subRoles.find(s => s.id === selectedSubRole);
-        if (sub) routePath = sub.route;
-      } else {
-        routePath = role.route;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim(),
+          password: password,
+          role: dbRole
+        })
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setGeneralError(data.error || "Invalid email, password, or role.");
+        return;
       }
 
-      if (routePath) {
-        if (routePath.startsWith("http") || routePath.startsWith("/dashboard")) {
-          window.location.href = routePath;
-        } else {
-          router.push(routePath);
+      if (typeof window !== "undefined" && data.user) {
+        try {
+          sessionStorage.setItem("clearfund_user", JSON.stringify(data.user));
+        } catch (_e) {
+          /* ignore */
         }
       }
+
+      const role = ROLES.find((r) => r.id === selectedRole);
+      if (role) {
+        let routePath = "";
+        if (role.subRoles) {
+          const sub = role.subRoles.find((s) => s.id === selectedSubRole);
+          if (sub) routePath = sub.route;
+        } else {
+          routePath = role.route;
+        }
+
+        if (routePath) {
+          if (routePath.startsWith("http") || routePath.startsWith("/dashboard")) {
+            window.location.href = routePath;
+          } else {
+            router.push(routePath);
+          }
+        }
+      }
+    } catch (_err) {
+      setGeneralError("Could not reach the server. Is the backend running?");
+    } finally {
+      setLoading(false);
     }
   }
 
