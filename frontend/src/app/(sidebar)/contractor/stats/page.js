@@ -135,9 +135,9 @@ export default function ContractorStatsPage() {
               <div className="breakdown-card" style={{ background: "white", padding: "2rem", borderRadius: "24px", border: "1px solid var(--border-color)" }}>
                 <h3 style={{ fontSize: "1.25rem", fontWeight: "800", marginBottom: "1.5rem" }}><i className="fa-solid fa-bolt" style={{ color: "#f59e0b", marginRight: "10px" }}></i> Milestone Efficiency</h3>
                 <div className="efficiency-bar-container" style={{ display: "grid", gap: "1rem" }}>
-                  <div className="eff-row">
+                  <div className="eff-row" style={{ width: "100%" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px", fontSize: "0.85rem", fontWeight: "700" }}>
-                        <span>On-Time Submissions</span>
+                        <span>On-Time Submissions:</span>
                         <span>{stats.on_time_milestones}</span>
                     </div>
                     <div className="bar-bg" style={{ height: "12px", background: "var(--bg-secondary)", borderRadius: "99px", overflow: "hidden" }}>
@@ -147,9 +147,9 @@ export default function ContractorStatsPage() {
                       ></div>
                     </div>
                   </div>
-                  <div className="eff-row">
+                  <div className="eff-row" style={{ width: "100%" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px", fontSize: "0.85rem", fontWeight: "700" }}>
-                        <span>Late Submissions</span>
+                        <span>Late Submissions:</span>
                         <span>{stats.delayed_milestones}</span>
                     </div>
                     <div className="bar-bg" style={{ height: "12px", background: "var(--bg-secondary)", borderRadius: "99px", overflow: "hidden" }}>

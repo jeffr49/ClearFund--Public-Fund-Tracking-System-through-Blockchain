@@ -195,7 +195,7 @@ export default function MyBidsPage() {
              <h3 style={{ fontSize: "1.5rem", color: "var(--text-secondary)" }}>No Bids Identified</h3>
              <p>You haven&apos;t submitted any proposals to active tenders yet.</p>
              <button onClick={() => router.push("/contractor/available")} style={{ marginTop: "1.5rem", padding: "10px 20px", borderRadius: "8px", background: "var(--primary-color)", color: "white", border: "none", fontWeight: "700", cursor: "pointer" }}>
-                Explorer Available Tenders
+                Explore Available Tenders
              </button>
            </div>
         ) : (
