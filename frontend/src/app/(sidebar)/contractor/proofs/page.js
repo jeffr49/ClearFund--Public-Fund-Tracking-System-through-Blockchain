@@ -229,7 +229,6 @@ export default function ExecutionPage() {
                 <h2 style={{ fontSize: "1.75rem", fontWeight: "800" }}>{selectedProject.title}</h2>
                 <div className="workspace-meta" style={{ display: "flex", gap: "1.5rem", marginTop: "0.5rem", color: "var(--text-secondary)", fontSize: "0.9rem", fontWeight: "600" }}>
                     <span><i className="fa-solid fa-location-dot"></i> {selectedProject.location}</span>
-                    <span style={{ fontFamily: "monospace" }}><i className="fa-solid fa-microchip"></i> {selectedProject.contract_address?.slice(0,12)}...</span>
                 </div>
              </div>
 
